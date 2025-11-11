@@ -1,0 +1,68 @@
+/* Clock.module.css */
+
+.sidebarSection {
+  width: 100%;
+}
+
+.sidebarTitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* layout row for clocks */
+.clockRow {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* clock card */
+.clock {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(0, 0, 0, 0.05)
+  );
+  backdrop-filter: blur(6px);
+  padding: 12px;
+  border-radius: 10px;
+  min-width: 110px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+/* active clock */
+.active {
+  border-color: rgba(0, 120, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(0, 120, 255, 0.08);
+  transform: translateY(-2px);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 120, 255, 0.06),
+    rgba(0, 0, 0, 0.03)
+  );
+}
+
+/* time text */
+.clockTime {
+  font-family: "Cascadia Code", "JetBrains Mono", monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+/* label */
+.clockLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}

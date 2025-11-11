@@ -1,0 +1,25 @@
+.sidebarSection {
+  padding: 2rem;
+}
+
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.actionButton {
+  background: #0000003a;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.rematchBtn {
+  grid-column: 1 / -1;
+}

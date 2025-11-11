@@ -1,0 +1,450 @@
+/* Friends.module.css */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem;
+  height: calc(100vh - 7.8rem);
+  overflow: auto;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.headerRow::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, #0b4cae, transparent);
+}
+
+.title {
+  font-size: 3.5rem;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 1.4rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px);
+  letter-spacing: 0.02em;
+}
+
+.btn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #0b4cae 0%, #1e40af 100%);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.btn.primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  transform: translateY(-2px);
+}
+
+.signedIn {
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.8rem 1.2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.signedIn strong {
+  font-weight: 500;
+  color: #fff;
+}
+
+.error {
+  background: linear-gradient(
+    135deg,
+    rgba(220, 53, 69, 0.15) 0%,
+    rgba(220, 53, 69, 0.05) 100%
+  );
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #fca5a5;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2.5rem;
+  font-size: 1.4rem;
+  backdrop-filter: blur(10px);
+  border-left: 4px solid #ef4444;
+}
+
+.section {
+  margin-bottom: 4rem;
+}
+
+.sectionTitle {
+  font-size: 2.2rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 2rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sectionTitle::before {
+  content: "";
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #0b4cae, #3b82f6);
+  border-radius: 2px;
+}
+
+.muted {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 4rem 3rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.6rem;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  line-height: 1.6;
+}
+
+/* Requests List */
+.requestsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.requestCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.requestCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #0b4cae, #3b82f6);
+}
+
+.requestCard:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateX(8px);
+}
+
+.requestInfo {
+  flex: 1;
+  padding-right: 2rem;
+}
+
+.requestName {
+  font-size: 1.7rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.requestHandle {
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.8rem;
+  font-weight: 400;
+}
+
+.requestTs {
+  font-size: 1.3rem;
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.requestTs::before {
+  content: "⏱";
+  font-size: 1.2rem;
+}
+
+.requestActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.requestActions .btn {
+  min-width: 100px;
+  padding: 0.8rem 1.6rem;
+}
+
+/* Friends Grid */
+.friendsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 2rem;
+}
+
+/* Challenge Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalBox {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 45, 0.95) 0%,
+    rgba(20, 20, 35, 0.98) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 3rem;
+  width: 90%;
+  max-width: 480px;
+  backdrop-filter: blur(40px);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modalTitle {
+  font-size: 2.4rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.formRow {
+  margin-bottom: 2rem;
+}
+
+.label {
+  display: block;
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.8rem;
+  font-weight: 500;
+}
+
+.input,
+.select {
+  width: 100%;
+  padding: 1.2rem;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 400;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+}
+
+.modalActions {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+.modalActions .btn {
+  min-width: 140px;
+  padding: 1.2rem 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 2rem 1.5rem;
+  }
+
+  .headerRow {
+    flex-direction: column;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+  }
+
+  .controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .requestCard {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .requestInfo {
+    padding-right: 0;
+    width: 100%;
+  }
+
+  .requestActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .friendsGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .modalBox {
+    margin: 1rem;
+    padding: 2.5rem;
+  }
+
+  .modalActions {
+    flex-direction: column;
+  }
+
+  .modalActions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 2.8rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .btn {
+    text-align: center;
+  }
+
+  .signedIn {
+    text-align: center;
+  }
+}

@@ -1,0 +1,200 @@
+.sidebarSection {
+  width: 100%;
+  height: 100%;
+}
+.moveHistory {
+  width: 100%;
+  background: #0000003a;
+  height: 100%;
+}
+
+.historyHeader {
+  background-color: #0000003a;
+
+  height: 5.2rem;
+}
+
+.historyControls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  height: 100%;
+  padding: 0 2rem;
+}
+
+.btn {
+  font-size: 1.3rem;
+  padding: 0.6rem 1.4rem;
+  background-color: #ffffff19;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  color: #fff;
+}
+
+.emptyMove {
+  text-align: center;
+  padding-top: 4rem;
+  font-size: 1.4rem;
+  color: #ddd;
+}
+
+/* --- Additive Move List styles (do NOT overwrite your existing rules) --- */
+
+.moveList {
+  height: 27rem;
+  overflow-y: auto;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* individual move row */
+.moveRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem 0.8rem;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease;
+  font-size: 1.3rem;
+  color: #eaeaea;
+}
+
+/* hover */
+.moveRow:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+/* active (keep your .moveActive classname logic) */
+.moveActive {
+  background: rgba(0, 170, 255, 0.16);
+  box-shadow: 0 0 0 1px rgba(0, 170, 255, 0.22);
+}
+
+/* number + spacing */
+.moveNumber {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+  min-width: 2.4rem;
+  text-align: right;
+}
+
+/* move text / notation */
+.moveText {
+  flex: 1;
+  font-family: "JetBrains Mono", "Cascadia Code", monospace;
+  font-size: 1rem;
+  color: #fff;
+  user-select: none;
+  letter-spacing: 0.2px;
+}
+
+/* fallback for empty list */
+.emptyMove {
+  text-align: center;
+  padding-top: 4rem;
+  font-size: 1.4rem;
+  color: #ddd;
+}
+/* MoveHistory extra (additive) */
+.moveCaptured {
+  min-width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.capturedImg {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+.capturedBadge {
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ---------- MoveHistory: alternate move styling by player (odd = White, even = Black) ---------- */
+
+/* Reset base to avoid duplicate/competing backgrounds (this will override your existing .moveRow bg) */
+.moveList .moveRow {
+  background: transparent;
+  color: inherit;
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.moveList .moveRow:nth-child(odd) .moveText,
+.moveList .moveRow:nth-child(odd) .moveNumber {
+  color: #0f1720;
+}
+
+/* Black moves (2nd, 4th, ...) — darker background, light text */
+.moveList .moveRow:nth-child(even) {
+  background: rgba(0, 0, 0, 0.3);
+  color: #eaeaea;
+}
+.moveList .moveRow:nth-child(even) .moveText,
+.moveList .moveRow:nth-child(even) .moveNumber {
+  color: #eaeaea;
+}
+
+/* Hover states tuned per row color */
+.moveList .moveRow:nth-child(odd):hover {
+  transform: translateY(-2px);
+}
+.moveList .moveRow:nth-child(even):hover {
+  background: rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Keep your active highlight visible and dominant — higher specificity so it overrides the alternates */
+.moveList .moveRow.moveActive {
+  background: rgba(0, 170, 255, 0.16) !important;
+  box-shadow: 0 0 0 1px rgba(0, 170, 255, 0.22);
+  transform: none;
+  color: #fff;
+}
+.moveList .moveRow.moveActive .moveText,
+.moveList .moveRow.moveActive .moveNumber {
+  color: #fff !important;
+}
+
+/* Captured badge styling adjusted to remain readable on both row types */
+.moveList .moveRow:nth-child(odd) .capturedBadge {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f1720;
+}
+.moveList .moveRow:nth-child(even) .capturedBadge {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+/* Ensure captured images remain unchanged */
+.moveList .moveRow .capturedImg {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+/* small accessibility tweak: increase contrast for move numbers on light rows */
+.moveList .moveRow:nth-child(odd) .moveNumber {
+  color: rgba(0, 0, 0, 0.8);
+  font-weight: 700;
+}
+
+/* White moves (1st, 3rd, ...) — lighter background, dark text */
+.moveList .moveRow:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.744);
+}

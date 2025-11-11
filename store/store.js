@@ -1,7 +1,7 @@
 // frontend/store/store.js
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "./slices/authSlice";
-import gameReducer from "./slices/gameSlice";
+import authReducer from "@/store/slices/authSlice";
+import gameReducer from "@/store/slices/gameSlice";
 
 export const store = configureStore({
   reducer: {

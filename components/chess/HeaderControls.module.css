@@ -1,0 +1,260 @@
+.header {
+  padding: 2rem;
+  position: relative;
+}
+
+.headerControls {
+  display: flex;
+  align-items: start;
+  gap: 1.5rem;
+  flex-direction: column;
+}
+
+.headerControlsBox {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  width: 100%;
+}
+
+.headerControlsBox button {
+  min-width: 100% !important;
+  text-align: left !important;
+}
+
+.btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 1.2rem 2.4rem;
+  border-radius: 8px;
+  font-size: 1.4rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  text-align: center;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btnInvite {
+  font-size: 1.1rem;
+  padding: 1rem;
+  min-width: 2rem !important;
+  background: #0b4cae;
+}
+
+.btnPrimary {
+  background: #0b4cae;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.btnPrimary:hover {
+  background: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.isPlayWithFriend {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+.roomInput {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1.2rem 1.6rem;
+  width: 100%;
+  outline: none;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.roomInput:focus {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.selectGroup {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.selectGroup .roomInput {
+  margin-bottom: 0;
+}
+
+.createActions {
+  margin-top: 2rem;
+}
+
+.friendsListContainer {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.friendsHeader {
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.noFriends {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.friendsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.friendRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  border-left: 3px solid #0b4cae;
+  position: relative;
+}
+
+.friendRow:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.friendInfo {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex: 1;
+}
+
+.friendAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.friendTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.friendName {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.friendMeta {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+}
+
+.friendActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.inviteOk {
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  background: rgba(13, 199, 137, 0.603);
+  backdrop-filter: blur(10px);
+  border-radius: 4px;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  left: 0;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inviteError {
+  color: #ffffff;
+  font-size: 1.3rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  background: rgba(239, 68, 68, 0.667);
+  backdrop-filter: blur(10px);
+
+  border-radius: 4px;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header {
+    padding: 1.5rem;
+  }
+
+  .selectGroup {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .friendRow {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .friendActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .friendsListContainer {
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+}

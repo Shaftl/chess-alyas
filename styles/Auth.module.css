@@ -1,0 +1,233 @@
+.container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.logo {
+  margin-bottom: 1.6rem;
+  width: 5.4rem;
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand {
+  font-size: 3.4rem;
+  font-weight: 400;
+  margin-bottom: 1.2rem;
+}
+
+.brand span {
+  color: #cacaca;
+}
+
+.tagline {
+  font-size: 2.2rem;
+  /* word-spacing: -3px; */
+  color: #b3b3b3;
+}
+
+.logoContainer {
+  margin-bottom: 4.6rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3rem;
+  border-bottom: 1px solid #3e3e3e;
+  padding-bottom: 2rem;
+}
+
+.formS {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.register .formS .birthday .input {
+  width: 21.4rem;
+}
+.register .formS .username .input {
+  width: 31rem;
+}
+.passwordGroup {
+  display: flex;
+  align-items: start;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+.inputGroup {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.input {
+  font-size: 1.9rem;
+  width: 40rem;
+  padding: 1.4rem 1.7rem;
+  background: #00000027;
+  border: none;
+  outline: none;
+  color: #e8e8e8;
+  border-radius: 1.4rem 1.4rem 0rem 0rem;
+  transition: all 0.3s ease;
+  padding-left: 5.2rem;
+}
+
+.register .input {
+  width: 53rem;
+}
+/* 
+.register .content {
+  background-color: rgba(0, 0, 0, 0.169);
+  padding: 6rem 5rem;
+  border-radius: 4rem;
+} */
+
+/* line under input */
+.inputGroup::after {
+  content: "";
+  position: absolute;
+  bottom: 0px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #9a9a9a;
+  /* border-radius: 1.4rem 1.4rem; */
+  /* opacity: 0; */
+  transition: all 0.3s ease;
+}
+
+/* when input is focused */
+.inputGroup:focus-within::after {
+  background-color: #0b4cae;
+}
+
+/* when input is focused */
+.inputGroup:focus-within .icon svg path {
+  stroke: #e8e8e8;
+}
+
+.input:hover,
+.input:focus,
+.input:active,
+.btn:hover,
+.btn:focus,
+.btn:active {
+  background: #00000052;
+}
+
+.icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 2rem;
+}
+
+.passwordHideAndShow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 2rem;
+  cursor: pointer;
+}
+
+.icon svg,
+.passwordHideAndShow svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.icon svg path,
+.passwordHideAndShow svg path {
+  stroke: #9a9a9a;
+}
+
+.forgotPassword {
+  font-size: 1.6rem;
+  color: #ababab;
+  text-decoration: none;
+}
+
+.forgotPassword:hover,
+.forgotPassword:focus,
+.link:hover,
+.link:focus {
+  color: #e8e8e8;
+  text-decoration: underline;
+}
+
+.btn {
+  font-size: 1.9rem;
+  padding: 1.4rem 3rem;
+  background: #00000027;
+  border: none;
+  outline: none;
+  color: #e8e8e8;
+  border-radius: 1.4rem;
+  cursor: pointer;
+  /* width: 14rem; */
+  transition: all 0.3s ease;
+}
+
+.error {
+  font-size: 1.6rem;
+  color: #e8e8e8;
+  background-color: #ff370034;
+  padding: 1.2rem 3rem;
+  width: 100%;
+  border-radius: 1.4rem 1.4rem 0 0;
+  margin-bottom: -2rem;
+}
+
+.secondaryText {
+  font-size: 1.6rem;
+  color: #ababab;
+}
+
+.link {
+  color: #e8e8e8;
+  text-decoration: none;
+}
+
+.btnBox {
+  text-align: center;
+}
+
+.geoInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+}
+
+.geoTitle {
+  font-size: 1.4rem;
+}
+
+.flag {
+  width: 2.6rem;
+  border-radius: 0.4rem;
+}

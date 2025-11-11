@@ -1,0 +1,94 @@
+/* CapturedPieces.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  gap: 0.2rem;
+  font-family: inherit;
+}
+
+/* Row layout */
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.rowLabel {
+  min-width: 110px;
+  color: #ddd;
+  font-size: 1.2rem;
+}
+
+/* content next to the label: list + material */
+.rowContent {
+  gap: 10px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* wrapper to keep list left-aligned */
+.capturedRowInner {
+}
+
+/* captured list (thumbnails) */
+.capturedList {
+  display: flex;
+  align-items: center;
+  /* gap: 0.2rem; */
+  max-width: 31rem;
+  padding: 0.1rem;
+}
+
+/* individual item */
+.capturedItem {
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.capturedImg {
+  width: 2.09rem;
+  height: 2.09rem;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+/* show a single material total to the far right of the row
+   only visible when there is an advantage */
+.rowMaterial {
+  font-size: 13px;
+  min-width: 46px;
+  color: #ffffff !important;
+  display: flex;
+  align-items: center;
+}
+
+/* empty captured fallback */
+.emptyCaptured {
+  color: #ffffff73;
+  font-size: 13px;
+}
+
+/* responsive */
+@media (max-width: 520px) {
+  .rowLabel {
+    min-width: 90px;
+    font-size: 12px;
+  }
+  .capturedItem {
+    width: 26px;
+    height: 26px;
+  }
+  .capturedImg {
+    width: 18px;
+    height: 18px;
+  }
+  .rowMaterial {
+    min-width: 40px;
+    font-size: 12px;
+  }
+}

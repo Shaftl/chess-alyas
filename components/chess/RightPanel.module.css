@@ -1,0 +1,59 @@
+.rightPanel {
+  width: 30rem;
+  background: #0000003a;
+  height: calc(100vh - 8rem);
+}
+
+.rightPanelContainer {
+  height: 100%;
+}
+
+.newGame {
+  overflow-y: auto;
+  height: calc(100vh - 16rem);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.tabsHideChat {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.btn {
+  font-size: 1.8rem;
+  padding: 1.4rem 0rem;
+  background-color: #0000003a;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: #fff;
+  transition: all 0.3s;
+}
+
+.tabs .btn {
+  font-size: 1.4rem;
+}
+
+.activeTab {
+  background-color: #00000061;
+  border-bottom: 2px solid #0b4cae;
+}
+
+.btn:hover {
+  background-color: #00000061;
+}
+
+.voiceTabOpen {
+  position: relative !important;
+}
+
+.voiceTabClose {
+  position: relative;
+  display: none !important;
+}

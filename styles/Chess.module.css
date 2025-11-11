@@ -1,0 +1,709 @@
+/* frontend/styles/Chess.module.css */
+/* Kept: only chess board + piece + state styles and the variables they depend on */
+
+/* Design tokens used by board & pieces */
+:root {
+  --primary: #0078d4;
+  --accent: #9c5cdf;
+  --chess-light: #f0d9b5;
+  --chess-dark: #b58863;
+  --chess-legal: #2196f3;
+  --chess-capture: #f44336;
+  --chess-check: #ff5252;
+  --chess-selected: #4caf50;
+
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-elevated: rgba(255, 255, 255, 0.95);
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+
+  --radius: 6px;
+  --radius-lg: 8px;
+
+  --blur-md: blur(20px);
+  --blur-lg: blur(30px);
+
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --text-primary: #1a1a1a;
+  --text-secondary: #404040;
+  --text-muted: #666666;
+}
+
+/* ---------- REPLACE: .boardContainer (smaller, keeps original height approach) ---------- */
+.boardContainer {
+  /* slightly reduced from 640 -> 600 for a modest, professional shrink */
+  width: min(500px, 72vh);
+  height: min(500px, 72vh);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  /* background: var(--bg-card); */
+  backdrop-filter: var(--blur-md);
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* ---------- REPLACE: responsive sizing (keep proportions, slightly smaller) ---------- */
+@media (max-width: 768px) {
+  .boardContainer {
+    width: min(460px, 78vw);
+    height: min(460px, 78vw);
+  }
+}
+
+@media (max-width: 480px) {
+  .boardContainer {
+    width: min(340px, 94vw);
+    height: min(340px, 94vw);
+  }
+}
+
+/* Board disabled state when game over */
+.boardOver {
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* Chess square basics */
+.square {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  /* border: 0.5px solid transparent; */
+}
+/* Hover boost for squares */
+.square:hover {
+  /* filter: brightness(1.08); */
+  z-index: 2;
+  background: #06b4d756;
+}
+
+/* Light / dark square visuals */
+.light {
+  /* background: var(--chess-light); */
+  /* background: linear-gradient(135deg, #f0d9b5 0%, #e8d1a8 100%); */
+  background: #ddd;
+}
+
+.dark {
+  background: #045071c1;
+}
+
+/* Piece image styling — preserves look & sizing */
+.pieceImg {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  /* allow pointer events so dragstart/onclick work */
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-drag: element; /* hint for some WebKit browsers */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  z-index: 5;
+  touch-action: none; /* helps avoid touch scrolling interfering with touch-drag */
+}
+
+/* .square:hover .pieceImg {
+} */
+
+/* Board coordinate labels */
+.fileLabel,
+.rankLabel {
+  position: absolute;
+  font-size: 0.7rem;
+  font-weight: 600;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.8;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.fileLabel {
+  left: 0.25rem;
+  bottom: 0.15rem;
+}
+
+.rankLabel {
+  right: 0.25rem;
+  top: 0.15rem;
+}
+
+/* When on dark squares, keep labels readable */
+.dark .fileLabel,
+.dark .rankLabel {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Selected piece square */
+.selected {
+  background: #06b4d756;
+}
+
+/* Legal move indicator (dot/pulse) */
+.legal::after {
+  content: "";
+  width: 24%;
+  height: 24%;
+  border-radius: 50%;
+  background: #ff8f00;
+  opacity: 0.4;
+  position: absolute;
+  z-index: 10;
+  /* animation: gentle-pulse 2s ease-in-out infinite; */
+}
+
+/* gentle pulse keyframes used by legal indicator */
+@keyframes gentle-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.4;
+  }
+}
+
+/* Last move highlight */
+.lastMove {
+  background: #ff910074;
+}
+
+/* King in check styling + subtle animation */
+.inCheck {
+  background: #e63947f0;
+}
+
+@keyframes check-alert {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.02);
+  }
+  75% {
+    transform: scale(0.98);
+  }
+}
+
+/* Capture visual indicator (animated ring) */
+.capture::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0.2s;
+  /* animation: capture-glow 1.5s ease-in-out infinite; */
+  background-color: #e63947f0;
+  z-index: 3;
+}
+
+@keyframes capture-glow {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Promotion modal choices styling (kept minimal because it's board-related) */
+.promoChoices {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.promoChoice {
+  padding: 2rem;
+  background: var(--bg-card);
+  backdrop-filter: var(--blur-md);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promoChoice:hover {
+  background: var(--bg-elevated);
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+/* Draw badge (kept board-related quick indicator) */
+.drawBadge {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  background: var(--bg-card);
+  backdrop-filter: var(--blur-lg);
+  color: var(--text-primary);
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 999;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments (only for board sizing) */
+@media (max-width: 768px) {
+  .boardContainer {
+    width: min(400px, 90vw);
+    height: min(400px, 90vw);
+  }
+}
+
+@media (max-width: 480px) {
+  .boardContainer {
+    width: min(360px, 95vw);
+    height: min(360px, 95vw);
+  }
+}
+
+/* all css */
+.wrapper {
+  width: 100%;
+  max-height: calc(100vh - 8rem);
+  overflow: hidden;
+  padding: 2.4rem;
+}
+
+.playContainer {
+  width: 100%;
+  height: 100%;
+}
+
+.mainLayout {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 2rem;
+}
+
+.mainLayoutHide {
+  grid-template-columns: 1fr auto;
+  max-width: 100rem;
+  margin: 0 auto;
+}
+
+.boardBox {
+  height: calc(100vh - 10.4rem);
+  overflow: auto;
+}
+
+.mainContent {
+  /* height: calc(100vh - 10.4rem); */
+  overflow: auto;
+  display: grid;
+  position: relative;
+  grid-template-columns: auto auto 1fr 1fr;
+  align-items: center;
+}
+/* Promotion Modal - Modern Clean Design */
+.promotionModal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10000;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.promoBox {
+  background: #0000003a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 3rem;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.promoTitle {
+  font-size: 2.2rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 2rem;
+  letter-spacing: -0.01em;
+}
+
+.promoDescription {
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2.5rem;
+  line-height: 1.5;
+}
+
+.promoChoices {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 0;
+}
+
+.promoChoice {
+  padding: 1.8rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  font-size: 2.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promoChoice:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+  .promoBox {
+    padding: 2.5rem;
+    max-width: 380px;
+  }
+
+  .promoChoices {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+
+  .promoChoice {
+    padding: 2rem 1rem;
+    font-size: 2rem;
+  }
+
+  .promoTitle {
+    font-size: 2rem;
+  }
+}
+
+/* new */
+/* ---------- FULLSCREEN (board-focused, keep right panel visible) ---------- */
+/* Adjust this variable if your right panel width differs */
+:root {
+  --fs-right-width: 360px; /* width reserved for right chat/panel */
+}
+:root {
+  --fs-gap: 24px; /* breathing gap around board */
+}
+
+/* Activate a fixed, full-viewport layout but keep the right panel visible */
+.mainLayout.fullscreenActive {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  /* left (optional sidebar) hidden, center = board area, right = chat/panel */
+  grid-template-columns: 1fr var(--fs-right-width);
+  gap: 0;
+  background: transparent;
+  align-items: center;
+  justify-items: center;
+  padding: 0;
+}
+
+/* Ensure board container area fills height and centers content */
+.mainLayout.fullscreenActive .boardBox {
+  height: 100vh;
+  width: calc(100vw - var(--fs-right-width));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--fs-gap);
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Make the board square and as large as possible while leaving room for right panel */
+.mainLayout.fullscreenActive .boardContainer {
+  /* width = min(available width, available height) so board stays square */
+  width: min(
+    calc(100vh - (2 * var(--fs-gap))),
+    calc(100vw - var(--fs-right-width) - (2 * var(--fs-gap)))
+  );
+  height: min(
+    calc(100vh - (2 * var(--fs-gap))),
+    calc(100vw - var(--fs-right-width) - (2 * var(--fs-gap)))
+  );
+
+  max-width: calc(100vw - var(--fs-right-width) - (2 * var(--fs-gap)));
+  max-height: calc(100vh - (2 * var(--fs-gap)));
+
+  /* keep original look (backdrop etc.) */
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+/* Keep captured pieces area compact (if shown) */
+.mainLayout.fullscreenActive .capturedPieces,
+.mainLayout.fullscreenActive .CapturedPieces {
+  display: none; /* hide captured pieces while fullscreen so board gets max space */
+}
+
+/* Right panel (chat) stays visible and scrollable */
+.mainLayout.fullscreenActive > *:nth-child(2) {
+  /* second column typically right panel */
+  height: 100vh;
+  overflow: auto;
+  position: relative;
+  background: var(--bg-card); /* optional, keeps chat readable */
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 12010;
+}
+
+/* Small responsive adjustments for narrow viewports */
+@media (max-width: 900px) {
+  :root {
+    --fs-right-width: 300px;
+  }
+  .mainLayout.fullscreenActive .boardBox {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* On very small screens, stack board above the chat so chat remains accessible */
+  .mainLayout.fullscreenActive {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .mainLayout.fullscreenActive .boardBox {
+    width: 100vw;
+    height: calc(100vh - 240px);
+    padding: 12px;
+  }
+  .mainLayout.fullscreenActive > *:nth-child(2) {
+    height: 240px;
+    box-shadow: none;
+  }
+}
+
+.fullScreenBtn {
+  /* position: absolute; */
+  z-index: 100;
+  background: #0000003a;
+  color: #fff;
+  border: none;
+  outline: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-size: 1rem;
+  backdrop-filter: blur(10px);
+  align-self: flex-start;
+}
+
+/* ---------- BOARD: prefer a height-driven size so board resists shrinking on zoom-out ---------- */
+
+/* tweak these if your left/right column widths differ */
+:root {
+  --left-sidebar: 400px; /* width of left column (sidebar area) */
+  --right-panel: 360px; /* width of right chat column */
+  --h-padding: 64px; /* total horizontal gutters/padding between columns */
+  --board-min: 420px; /* absolute minimum board size */
+  --board-max: 1200px; /* absolute maximum board size */
+  --board-prefer-vh: 60vh; /* prefer this fraction of viewport height */
+}
+
+/*
+ Strategy:
+  - availableCenter = min(centerWidth, availableHeight)
+  - preferred = max( --board-prefer-vh, availableCenter )
+  - final width = clamp(min, preferred, max)
+ This makes the board prefer a tall (vh) size and refuse to become smaller than that,
+ while still fitting to the center column when needed.
+*/
+
+.boardContainer {
+  /* compute the center available width (viewport minus left + right + padding) */
+  --available-center-width: calc(
+    100vw - var(--left-sidebar) - var(--right-panel) - var(--h-padding)
+  );
+  --available-center-height: calc(
+    100vh - 14rem
+  ); /* adjust if your header/footer height differs */
+
+  width: clamp(
+    var(--board-min),
+    max(
+      var(--board-prefer-vh),
+      min(var(--available-center-width), var(--available-center-height))
+    ),
+    var(--board-max)
+  );
+
+  /* keep perfect square */
+  aspect-ratio: 1 / 1;
+  height: auto; /* derived from width via aspect-ratio */
+
+  /* safety caps so it never overflows */
+  max-width: calc(100vw - var(--left-sidebar) - var(--h-padding));
+  max-height: calc(100vh - 8rem);
+
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+/* new */
+/* ---------- BOARD TEXTURE (Photoshop Multiply look) ---------- */
+/* ---------- BOARD TEXTURE (Photoshop Multiply look) - REPLACEMENT ---------- */
+/* Paste this in place of your existing texture block (remove the old one) */
+
+/* tuning vars (can remain in :root or overridden inline) */
+:root {
+  --texture-opacity: 0.6;
+  --texture-scale: 1.02;
+  --texture-filter: grayscale(6%) contrast(95%) brightness(98%);
+}
+
+/* Ensure the board forms its own stacking context so the overlay won't unexpectedly
+   blend or float above pieces from outside stacking contexts. */
+.boardContainer {
+  position: relative; /* already set, but keep for clarity */
+  isolation: isolate; /* create local stacking context */
+}
+
+/* Base square layer: sits under overlay but inside board stacking context */
+.square {
+  position: relative;
+  overflow: hidden;
+  z-index: 1; /* base squares at z=1 */
+}
+
+/* Full-board texture overlay:
+   - sits above the square base colors (so mix-blend-mode multiplies against them),
+   - but below pieces/labels/highlights (so they remain fully visible).
+*/
+.boardContainer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--board-texture);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--texture-opacity);
+  filter: var(--texture-filter);
+  transform: scale(var(--texture-scale));
+  mix-blend-mode: multiply;
+  z-index: 2; /* ABOVE squares (1), BELOW pieces (10) */
+}
+
+/* Make sure pieces and labels are above overlay */
+.pieceImg {
+  position: relative; /* required so z-index applies */
+  z-index: 10; /* high so pieces are above overlay */
+}
+
+.fileLabel,
+.rankLabel {
+}
+
+/* Important square states should appear above the overlay but below pieces */
+.selected,
+.lastMove,
+.inCheck,
+.capture,
+.legal {
+  position: relative;
+  z-index: 9; /* above overlay but below pieces/labels */
+}
+
+/* Legal dot and capture pseudo elements — ensure they render above overlay */
+.legal::after {
+  z-index: 12; /* above everything to remain visible */
+  position: absolute;
+}
+.capture::before {
+  z-index: 8;
+  position: absolute;
+}
+
+/* Optional: per-square texture variant (commented out). If you prefer
+   per-square tiles, comment out .boardContainer::before and uncomment below.
+*/
+/*
+.square::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--board-texture);
+  background-size: 160% 160%;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--texture-opacity);
+  filter: var(--texture-filter);
+  mix-blend-mode: multiply;
+  z-index: 2;
+}
+*/
