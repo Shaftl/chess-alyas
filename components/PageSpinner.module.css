@@ -1,0 +1,75 @@
+/* PageSpinner.module.css */
+
+/* full-screen dim overlay */
+.pageSpinnerOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 11, 20, 0.55); /* dark dim */
+  z-index: 99999; /* very top */
+  pointer-events: none; /* allow clicks to pass if needed (but visually blocks) */
+}
+
+/* small container to center spinner (gives nicer spacing on narrow screens) */
+.spinnerBox {
+  pointer-events: auto; /* allow focus/hover if necessary */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+/* large spinner based on your loader — scaled up for page-level usage */
+.loader {
+  width: 6rem; /* larger size */
+  height: 6rem;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  border: 6px solid;
+  border-color: #fff #fff transparent;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+}
+
+/* inner ring */
+.loader::after {
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  border: 5px solid;
+  border-color: transparent #0066ff #0066ff;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  animation: rotationBack 0.5s linear infinite;
+  transform-origin: center center;
+}
+
+/* animations (same as your definitions) */
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rotationBack {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
