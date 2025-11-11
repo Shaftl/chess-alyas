@@ -11,30 +11,70 @@ const API =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://chess-backend-api.onrender.com/api";
 
-/* helper: country code -> emoji flag (kept as fallback, not used by default) */
-function countryCodeToEmoji(code) {
-  if (!code || typeof code !== "string") return "";
-  const cc = code.trim().toUpperCase();
-  if (cc.length !== 2) return "";
-  return cc
-    .split("")
-    .map((c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
-    .join("");
+/* ---------- NEW: compute backend base (no trailing slash) ---------- */
+const BACKEND_BASE =
+  (process.env.NEXT_PUBLIC_BACKEND_BASE_URL &&
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL.replace(/\/$/, "")) ||
+  API.replace(/\/api\/?$/, "");
+
+/* ---------- NEW: normalize backend/url -> rewrite localhost to production base
+   Preserves absolute external URLs (CDN) but rewrites dev hostnames to BACKEND_BASE.
+*/
+function normalizeBackendUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return null;
+  const url = rawUrl.trim();
+
+  // If it's an absolute URL, parse and potentially rewrite localhost -> BACKEND_BASE
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const u = new URL(url);
+      if (
+        u.hostname === "localhost" ||
+        u.hostname === "127.0.0.1" ||
+        u.hostname.endsWith(".local")
+      ) {
+        // rewrite to production backend base keeping path + query + hash
+        return `${BACKEND_BASE}${u.pathname}${u.search}${u.hash}`;
+      }
+      // otherwise return as-is (CDN or already production)
+      return url;
+    } catch (e) {
+      // fall through to treat as a relative path if parsing fails
+    }
+  }
+
+  // Not absolute — treat as relative path and prefix BACKEND_BASE
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${BACKEND_BASE}${path}`;
 }
 
-/* Resolve avatar: prefer normalize helper which handles absolute/relative */
+/* Resolve avatar: prefer normalize helper which handles absolute/relative,
+   then ensure final URL is normalized to backend base when appropriate.
+*/
 function avatarForUser(user) {
   if (!user) return null;
   try {
-    const url = normalizeAvatarUrlFromAuthUser(user);
-    if (url) return url;
+    const helperUrl = normalizeAvatarUrlFromAuthUser
+      ? normalizeAvatarUrlFromAuthUser(user)
+      : null;
+    if (helperUrl) {
+      const n = normalizeBackendUrl(helperUrl);
+      if (n) return n;
+      return helperUrl;
+    }
   } catch (e) {
     // ignore
   }
-  if (user.avatarUrl && /^https?:\/\//i.test(user.avatarUrl))
-    return user.avatarUrl;
-  if (user.avatarUrlAbsolute && /^https?:\/\//i.test(user.avatarUrlAbsolute))
-    return user.avatarUrlAbsolute;
+
+  // fallback fields
+  if (user.avatarUrlAbsolute) {
+    const n = normalizeBackendUrl(user.avatarUrlAbsolute);
+    return n || user.avatarUrlAbsolute;
+  }
+  if (user.avatarUrl) {
+    const n = normalizeBackendUrl(user.avatarUrl);
+    return n || user.avatarUrl;
+  }
   return null;
 }
 
@@ -97,6 +137,17 @@ export default function PlayersPanel({
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed) {
+          // NORMALIZE any stored avatar URLs so they won't point to localhost
+          try {
+            if (parsed.avatarUrl)
+              parsed.avatarUrl = normalizeBackendUrl(parsed.avatarUrl);
+            if (parsed.avatarUrlAbsolute)
+              parsed.avatarUrlAbsolute = normalizeBackendUrl(
+                parsed.avatarUrlAbsolute
+              );
+          } catch (err) {
+            /* ignore normalization errors */
+          }
           setMyAuthUserLocal(parsed);
           return;
         }
@@ -118,19 +169,19 @@ export default function PlayersPanel({
         });
         if (res.ok) {
           const data = await res.json();
+
+          // NORMALIZE avatar/flag/country fields here:
           let finalAvatar = null;
           if (
             data.avatarUrlAbsolute &&
             /^https?:\/\//i.test(data.avatarUrlAbsolute)
           ) {
-            finalAvatar = data.avatarUrlAbsolute;
+            finalAvatar = normalizeBackendUrl(data.avatarUrlAbsolute);
           } else if (data.avatarUrl && /^https?:\/\//i.test(data.avatarUrl)) {
-            finalAvatar = data.avatarUrl;
+            finalAvatar = normalizeBackendUrl(data.avatarUrl);
           } else if (data.avatarUrl) {
-            const b =
-              process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-              API.replace(/\/api\/?$/, "");
-            finalAvatar = `${b}${data.avatarUrl}`;
+            // relative path like "/uploads/..." — prefix backend base
+            finalAvatar = normalizeBackendUrl(data.avatarUrl);
           }
           data.avatarUrl = finalAvatar;
           data.flagUrl = data.flagUrl || null;
@@ -251,7 +302,7 @@ export default function PlayersPanel({
     />
   );
 
-  /* ========== NEW: Cups badge helper ========== */
+  /* ========== Cups badge helper ========== */
   const CupsBadge = ({ user, hideZero = false }) => {
     const cups =
       user && user.cups !== undefined && user.cups !== null
@@ -269,9 +320,8 @@ export default function PlayersPanel({
       </span>
     );
   };
-  /* ========================================== */
 
-  /* ========== NEW: render flag image helper ========== */
+  /* render flag image helper */
   const renderFlag = (userOrCode, size = 16) => {
     if (!userOrCode) return null;
     const maybeUser = typeof userOrCode === "object" ? userOrCode : null;
@@ -306,9 +356,8 @@ export default function PlayersPanel({
       />
     );
   };
-  /* ========================================== */
 
-  /* ========== NEW: render truncated name + tooltip ========== */
+  /* render truncated name + tooltip */
   const renderName = (user, alt) => {
     const full = nameOrLabel(user, alt);
     return (
@@ -322,7 +371,6 @@ export default function PlayersPanel({
       </span>
     );
   };
-  /* ========================================== */
 
   const clockForColor = (color) => {
     if (!clocks) return null;
