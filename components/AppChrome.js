@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import SideNav from "@/components/SideNav";
 import PageSpinner from "@/components/PageSpinner";
+import ActiveRoomModal from "./ActiveRoomModal";
 
 /**
  * AppChrome
@@ -81,7 +82,10 @@ export default function AppChrome({ children }) {
       <div className="gridRoot">
         <SideNav />
         <div>
-          <Suspense fallback={<PageSpinner />}>{children}</Suspense>
+          <Suspense fallback={<PageSpinner />}>
+            <ActiveRoomModal />
+            {children}
+          </Suspense>
         </div>
       </div>
 

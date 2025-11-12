@@ -4,10 +4,12 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import axios from "axios";
 import { initSocket } from "@/lib/socketClient";
 import styles from "./Players.module.css";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Normalize environment URL so we never end up with double "/api"
 const RAW_API = (
-  process.env.NEXT_PUBLIC_API_URL || "https://chess-backend-api.onrender.com"
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://chess-backend-api.onrender.com/api"
 ).replace(/\/$/, "");
 const API_PREFIX = RAW_API.endsWith("/api") ? RAW_API : `${RAW_API}/api`;
 const PLAYERS_URL = `${API_PREFIX}/players`;
@@ -481,305 +483,315 @@ export default function PlayersPage() {
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>Players</h2>
+    <ProtectedRoute>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Players</h2>
 
-        <div className={styles.controls}>
-          <input
-            type="search"
-            placeholder="Search players by name or username..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.input}
-          />
-          <button
-            onClick={() => fetchPlayers(searchQuery)}
-            disabled={loading}
-            className={styles.btn}
-          >
-            Search
-          </button>
-          <button
-            onClick={() => {
-              setSearchQuery("");
-              fetchPlayers("");
-            }}
-            disabled={loading || !searchQuery}
-            className={styles.btn}
-          >
-            Clear
-          </button>
-
-          <button
-            onClick={() => fetchPlayers()}
-            disabled={loading}
-            className={styles.btn}
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {errorMsg && (
-        <div className={styles.error}>
-          Error fetching players: {errorMsg}
-          <div className={styles.errorUrl}>Requested URL: {PLAYERS_URL}</div>
-        </div>
-      )}
-
-      {/* Current user summary card */}
-      {currentUserEntry ? (
-        <div className={styles.currentUserCard}>
-          <div className={styles.currentUserInfo}>
-            <div className={styles.currentUserName}>
-              {currentUserEntry.displayName || currentUserEntry.username}
-              <span className={styles.youBadge}>You</span>
-            </div>
-            <div className={styles.currentUserHandle}>
-              @{currentUserEntry.username}
-            </div>
-            <div className={styles.currentUserMeta}>
-              <span>
-                <span
-                  className={
-                    currentUserEntry.online
-                      ? styles.onlineDot
-                      : styles.offlineDot
-                  }
-                ></span>
-                {currentUserEntry.online ? "Online" : "Offline"}
-              </span>
-              • {currentUserEntry.country || "Unknown country"}• {friendsCount}{" "}
-              friends
-            </div>
-          </div>
-          <div className={styles.playerActions}>
+          <div className={styles.controls}>
+            <input
+              type="search"
+              placeholder="Search players by name or username..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.input}
+            />
             <button
+              onClick={() => fetchPlayers(searchQuery)}
+              disabled={loading}
               className={styles.btn}
-              onClick={() => openProfile(currentUserEntry)}
             >
-              View Profile
+              Search
+            </button>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                fetchPlayers("");
+              }}
+              disabled={loading || !searchQuery}
+              className={styles.btn}
+            >
+              Clear
+            </button>
+
+            <button
+              onClick={() => fetchPlayers()}
+              disabled={loading}
+              className={styles.btn}
+            >
+              Refresh
             </button>
           </div>
         </div>
-      ) : (
-        <div className={styles.notSignedIn}>
-          Not signed in — sign in to see your profile here
-        </div>
-      )}
 
-      {/* Friends */}
-      <div>
-        <h3 className={styles.sectionHeader}>
-          Friends <span className={styles.sectionCount}>({friendsCount})</span>
-        </h3>
-        {friendsList.length === 0 && (
-          <div className={styles.emptyState}>No friends to show</div>
+        {errorMsg && (
+          <div className={styles.error}>
+            Error fetching players: {errorMsg}
+            <div className={styles.errorUrl}>Requested URL: {PLAYERS_URL}</div>
+          </div>
         )}
-        <div className={styles.playersGrid}>
-          {friendsList.map((p) => (
-            <div key={p.id} className={styles.playerCard}>
-              <div className={styles.playerHeader}>
-                <div className={styles.playerInfo}>
-                  <div className={styles.playerName}>
-                    {p.displayName || p.username}
-                  </div>
-                  <div className={styles.playerHandle}>@{p.username}</div>
-                  {p.friends && p.friends.length > 0 && (
-                    <div className={styles.playerFriends}>
-                      Friends:{" "}
-                      {p.friends
-                        .map((f) => f.username)
-                        .slice(0, 3)
-                        .join(", ")}
-                      {p.friends.length > 3 ? "…" : ""}
+
+        {/* Current user summary card */}
+        {currentUserEntry ? (
+          <div className={styles.currentUserCard}>
+            <div className={styles.currentUserInfo}>
+              <div className={styles.currentUserName}>
+                {currentUserEntry.displayName || currentUserEntry.username}
+                <span className={styles.youBadge}>You</span>
+              </div>
+              <div className={styles.currentUserHandle}>
+                @{currentUserEntry.username}
+              </div>
+              <div className={styles.currentUserMeta}>
+                <span>
+                  <span
+                    className={
+                      currentUserEntry.online
+                        ? styles.onlineDot
+                        : styles.offlineDot
+                    }
+                  ></span>
+                  {currentUserEntry.online ? "Online" : "Offline"}
+                </span>
+                • {currentUserEntry.country || "Unknown country"}•{" "}
+                {friendsCount} friends
+              </div>
+            </div>
+            <div className={styles.playerActions}>
+              <button
+                className={styles.btn}
+                onClick={() => openProfile(currentUserEntry)}
+              >
+                View Profile
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.notSignedIn}>
+            Not signed in — sign in to see your profile here
+          </div>
+        )}
+
+        {/* Friends */}
+        <div>
+          <h3 className={styles.sectionHeader}>
+            Friends{" "}
+            <span className={styles.sectionCount}>({friendsCount})</span>
+          </h3>
+          {friendsList.length === 0 && (
+            <div className={styles.emptyState}>No friends to show</div>
+          )}
+          <div className={styles.playersGrid}>
+            {friendsList.map((p) => (
+              <div key={p.id} className={styles.playerCard}>
+                <div className={styles.playerHeader}>
+                  <div className={styles.playerInfo}>
+                    <div className={styles.playerName}>
+                      {p.displayName || p.username}
                     </div>
-                  )}
-                </div>
-                <div className={styles.playerStatus}>
-                  <div
-                    className={`${styles.onlineStatus} ${
-                      p.online ? styles.online : styles.offline
-                    }`}
-                  >
-                    {p.online ? "Online" : "Offline"}
+                    <div className={styles.playerHandle}>@{p.username}</div>
+                    {p.friends && p.friends.length > 0 && (
+                      <div className={styles.playerFriends}>
+                        Friends:{" "}
+                        {p.friends
+                          .map((f) => f.username)
+                          .slice(0, 3)
+                          .join(", ")}
+                        {p.friends.length > 3 ? "…" : ""}
+                      </div>
+                    )}
                   </div>
-                  <div className={styles.playerCountry}>{p.country || ""}</div>
+                  <div className={styles.playerStatus}>
+                    <div
+                      className={`${styles.onlineStatus} ${
+                        p.online ? styles.online : styles.offline
+                      }`}
+                    >
+                      {p.online ? "Online" : "Offline"}
+                    </div>
+                    <div className={styles.playerCountry}>
+                      {p.country || ""}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.playerActions}>
+                  <button
+                    className={styles.btn}
+                    onClick={() => openChallengeModal(p)}
+                    disabled={!p.online}
+                  >
+                    Challenge
+                  </button>
+                  <button
+                    className={styles.btn}
+                    onClick={() => sendFriendRequest(p.id)}
+                    disabled={isFriend(p) || hasPendingSent(p)}
+                  >
+                    {isFriend(p)
+                      ? "Friends"
+                      : hasPendingSent(p)
+                      ? "Request sent"
+                      : "Friend"}
+                  </button>
+                  <button
+                    className={`${styles.btn} ${styles.unfriendBtn}`}
+                    onClick={() => unfriend(p.id)}
+                  >
+                    Unfriend
+                  </button>
+                  <button className={styles.btn} onClick={() => openProfile(p)}>
+                    View
+                  </button>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div className={styles.playerActions}>
-                <button
-                  className={styles.btn}
-                  onClick={() => openChallengeModal(p)}
-                  disabled={!p.online}
+        {/* Others */}
+        <div>
+          <h3 className={styles.sectionHeader}>
+            Others{" "}
+            <span className={styles.sectionCount}>({othersList.length})</span>
+          </h3>
+          {othersList.length === 0 && (
+            <div className={styles.emptyState}>No other players</div>
+          )}
+          <div className={styles.playersGrid}>
+            {othersList.map((p) => (
+              <div key={p.id} className={styles.playerCard}>
+                <div className={styles.playerHeader}>
+                  <div className={styles.playerInfo}>
+                    <div className={styles.playerName}>
+                      {p.displayName || p.username}
+                    </div>
+                    <div className={styles.playerHandle}>@{p.username}</div>
+                  </div>
+                  <div className={styles.playerStatus}>
+                    <div
+                      className={`${styles.onlineStatus} ${
+                        p.online ? styles.online : styles.offline
+                      }`}
+                    >
+                      {p.online ? "Online" : "Offline"}
+                    </div>
+                    <div className={styles.playerCountry}>
+                      {p.country || ""}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.playerActions}>
+                  <button
+                    className={styles.btn}
+                    onClick={() => openChallengeModal(p)}
+                    disabled={!p.online}
+                  >
+                    Challenge
+                  </button>
+                  <button
+                    className={styles.btn}
+                    onClick={() => sendFriendRequest(p.id)}
+                    disabled={isFriend(p) || hasPendingSent(p)}
+                  >
+                    {isFriend(p)
+                      ? "Friends"
+                      : hasPendingSent(p)
+                      ? "Request sent"
+                      : "Friend"}
+                  </button>
+                  <button className={styles.btn} onClick={() => openProfile(p)}>
+                    View
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Challenge modal */}
+        {challengeModal.open && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalBox}>
+              <h3 className={styles.modalTitle}>
+                Challenge{" "}
+                {challengeModal.target?.displayName ||
+                  challengeModal.target?.username}
+              </h3>
+              <div className={styles.formRow}>
+                <label className={styles.label}>Minutes:</label>
+                <input
+                  type="number"
+                  value={challengeModal.minutes}
+                  onChange={(e) =>
+                    setChallengeModal((s) => ({
+                      ...s,
+                      minutes: Number(e.target.value) || 1,
+                    }))
+                  }
+                  className={styles.input}
+                  min={1}
+                />
+              </div>
+              <div className={styles.formRow}>
+                <label className={styles.label}>Color preference:</label>
+                <select
+                  value={challengeModal.color}
+                  onChange={(e) =>
+                    setChallengeModal((s) => ({ ...s, color: e.target.value }))
+                  }
+                  className={styles.select}
                 >
-                  Challenge
-                </button>
+                  <option value="random">Random</option>
+                  <option value="white">Prefer White</option>
+                  <option value="black">Prefer Black</option>
+                </select>
+              </div>
+              <div className={styles.modalActions}>
                 <button
-                  className={styles.btn}
-                  onClick={() => sendFriendRequest(p.id)}
-                  disabled={isFriend(p) || hasPendingSent(p)}
+                  className={`${styles.btn} ${styles.primary}`}
+                  onClick={sendChallenge}
                 >
-                  {isFriend(p)
-                    ? "Friends"
-                    : hasPendingSent(p)
-                    ? "Request sent"
-                    : "Friend"}
+                  Send Challenge
                 </button>
-                <button
-                  className={`${styles.btn} ${styles.unfriendBtn}`}
-                  onClick={() => unfriend(p.id)}
-                >
-                  Unfriend
-                </button>
-                <button className={styles.btn} onClick={() => openProfile(p)}>
-                  View
+                <button className={styles.btn} onClick={closeChallengeModal}>
+                  Cancel
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Others */}
-      <div>
-        <h3 className={styles.sectionHeader}>
-          Others{" "}
-          <span className={styles.sectionCount}>({othersList.length})</span>
-        </h3>
-        {othersList.length === 0 && (
-          <div className={styles.emptyState}>No other players</div>
+          </div>
         )}
-        <div className={styles.playersGrid}>
-          {othersList.map((p) => (
-            <div key={p.id} className={styles.playerCard}>
-              <div className={styles.playerHeader}>
-                <div className={styles.playerInfo}>
-                  <div className={styles.playerName}>
-                    {p.displayName || p.username}
-                  </div>
-                  <div className={styles.playerHandle}>@{p.username}</div>
-                </div>
-                <div className={styles.playerStatus}>
-                  <div
-                    className={`${styles.onlineStatus} ${
-                      p.online ? styles.online : styles.offline
-                    }`}
-                  >
-                    {p.online ? "Online" : "Offline"}
-                  </div>
-                  <div className={styles.playerCountry}>{p.country || ""}</div>
-                </div>
-              </div>
 
-              <div className={styles.playerActions}>
+        {/* Incoming challenge modal */}
+        {incomingChallenge && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalBox}>
+              <h3 className={styles.modalTitle}>
+                Challenge from {incomingChallenge.from.username}
+              </h3>
+              <div className={styles.challengeInfo}>
+                <div>Time: {incomingChallenge.minutes} min</div>
+                <div>Color preference: {incomingChallenge.colorPreference}</div>
+              </div>
+              <div className={styles.modalActions}>
                 <button
-                  className={styles.btn}
-                  onClick={() => openChallengeModal(p)}
-                  disabled={!p.online}
+                  className={`${styles.btn} ${styles.primary}`}
+                  onClick={acceptIncomingChallenge}
                 >
-                  Challenge
+                  Accept
                 </button>
                 <button
                   className={styles.btn}
-                  onClick={() => sendFriendRequest(p.id)}
-                  disabled={isFriend(p) || hasPendingSent(p)}
+                  onClick={declineIncomingChallenge}
                 >
-                  {isFriend(p)
-                    ? "Friends"
-                    : hasPendingSent(p)
-                    ? "Request sent"
-                    : "Friend"}
-                </button>
-                <button className={styles.btn} onClick={() => openProfile(p)}>
-                  View
+                  Decline
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
-
-      {/* Challenge modal */}
-      {challengeModal.open && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalBox}>
-            <h3 className={styles.modalTitle}>
-              Challenge{" "}
-              {challengeModal.target?.displayName ||
-                challengeModal.target?.username}
-            </h3>
-            <div className={styles.formRow}>
-              <label className={styles.label}>Minutes:</label>
-              <input
-                type="number"
-                value={challengeModal.minutes}
-                onChange={(e) =>
-                  setChallengeModal((s) => ({
-                    ...s,
-                    minutes: Number(e.target.value) || 1,
-                  }))
-                }
-                className={styles.input}
-                min={1}
-              />
-            </div>
-            <div className={styles.formRow}>
-              <label className={styles.label}>Color preference:</label>
-              <select
-                value={challengeModal.color}
-                onChange={(e) =>
-                  setChallengeModal((s) => ({ ...s, color: e.target.value }))
-                }
-                className={styles.select}
-              >
-                <option value="random">Random</option>
-                <option value="white">Prefer White</option>
-                <option value="black">Prefer Black</option>
-              </select>
-            </div>
-            <div className={styles.modalActions}>
-              <button
-                className={`${styles.btn} ${styles.primary}`}
-                onClick={sendChallenge}
-              >
-                Send Challenge
-              </button>
-              <button className={styles.btn} onClick={closeChallengeModal}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Incoming challenge modal */}
-      {incomingChallenge && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalBox}>
-            <h3 className={styles.modalTitle}>
-              Challenge from {incomingChallenge.from.username}
-            </h3>
-            <div className={styles.challengeInfo}>
-              <div>Time: {incomingChallenge.minutes} min</div>
-              <div>Color preference: {incomingChallenge.colorPreference}</div>
-            </div>
-            <div className={styles.modalActions}>
-              <button
-                className={`${styles.btn} ${styles.primary}`}
-                onClick={acceptIncomingChallenge}
-              >
-                Accept
-              </button>
-              <button className={styles.btn} onClick={declineIncomingChallenge}>
-                Decline
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </ProtectedRoute>
   );
 }

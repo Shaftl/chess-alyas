@@ -1,0 +1,217 @@
+/* frontend/components/ActiveRoomModal.module.css */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.799);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+  backdrop-filter: blur(2px);
+}
+
+.modalCard {
+  background: #0000003a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 2rem 3rem;
+  width: 100%;
+  max-width: 500px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalTitle {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #fff;
+  margin: 0;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  line-height: 1;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalClose:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modalBody {
+  display: flex;
+  gap: 2rem;
+}
+
+.modalLeft {
+  flex: 1;
+}
+
+.modalRight {
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.4rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem 0;
+}
+
+.roomInfo {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.roomInfoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.3rem;
+}
+
+.roomInfoRow p:first-child {
+  color: #fff;
+  font-weight: 500;
+  margin: 0;
+}
+
+.roomInfoRow p:last-child {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.roomId {
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.quickActionsColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 140px;
+}
+
+.btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 1rem 1.6rem;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.btnPrimary {
+  background: #0b4cae;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.btnPrimary:hover {
+  background: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.btnSecondary {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding: 1rem;
+  }
+
+  .modalCard {
+    padding: 1.5rem;
+  }
+
+  .modalBody {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .modalRight {
+    width: 100%;
+  }
+
+  .quickActionsColumn {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .modalTitle {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalCard {
+    padding: 1.5rem;
+  }
+
+  .quickActionsColumn {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+    min-width: auto;
+  }
+}

@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import ChessBoard from "@/components/ChessBoard";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function PlayRoomPage() {
   const params = useParams();
@@ -20,8 +21,8 @@ export default function PlayRoomPage() {
   }, [roomId]);
 
   return (
-    <div>
+    <ProtectedRoute>
       <ChessBoard initialRoomId={roomId} spectatorOnly={spectatorOnly} />
-    </div>
+    </ProtectedRoute>
   );
 }

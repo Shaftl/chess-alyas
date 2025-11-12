@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import ChessBoard from "@/components/ChessBoard";
 import AccountDropdown from "@/components/AccountDropdown";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 /**
  * Page wrapper for /play
@@ -15,13 +16,13 @@ export default function PlayPage() {
   }, []);
 
   return (
-    <div>
+    <ProtectedRoute>
       <ChessBoard
         hideSidebar={true}
         hideRightChat={true}
         hideCaptured={true}
         setTabToNewGame={true}
       />
-    </div>
+    </ProtectedRoute>
   );
 }

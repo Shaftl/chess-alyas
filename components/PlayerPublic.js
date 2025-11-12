@@ -128,7 +128,7 @@ export default function PlayerPublic({ id }) {
           process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
           (
             process.env.NEXT_PUBLIC_API_URL ||
-            "https://chess-backend-api.onrender.com"
+            "https://chess-backend-api.onrender.com/api"
           ).replace(/\/api\/?$/, "");
         finalAvatar = `${backendOrigin}${data.avatarUrl}`;
       }

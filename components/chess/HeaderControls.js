@@ -1,4 +1,3 @@
-// frontend/components/HeaderControls.js
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -267,6 +266,7 @@ export default function HeaderControls({
           body = await res.json();
         } catch {}
         const msg = (body && body.error) || `Invite failed (${res.status})`;
+        // <-- FIX: return object (not array) when updating state
         setInviteStatusById((s) => ({
           ...s,
           [friend.id]: { ok: false, message: msg },
@@ -278,6 +278,7 @@ export default function HeaderControls({
       }
 
       const data = await res.json();
+      // <-- FIX: return object (not array) when updating state
       setInviteStatusById((s) => ({
         ...s,
         [friend.id]: {
@@ -290,6 +291,7 @@ export default function HeaderControls({
         setInviteStatusById((s) => ({ ...s, [friend.id]: null }));
       }, 3500);
     } catch (err) {
+      // <-- FIX: return object (not array) when updating state
       setInviteStatusById((s) => ({
         ...s,
         [friend.id]: { ok: false, message: "Network error" },
@@ -372,6 +374,40 @@ export default function HeaderControls({
     }
   }, []);
 
+  // --- NEW: client-side guard before creating a room
+  async function ensureNoActiveRoomBeforeCreate() {
+    try {
+      const uid = auth?.user?.id || auth?.user?._id;
+      if (!uid) return true; // not logged in — let server decide
+      const base = backendOrigin();
+      const res = await fetch(
+        `${base}/api/players/${encodeURIComponent(uid)}`,
+        {
+          credentials: "include",
+        }
+      );
+      if (!res.ok) return true; // can't fetch — allow create (server will deny if needed)
+      const data = await res.json().catch(() => null);
+      if (data && data.activeRoom) {
+        // dispatch global event so modal opens
+        try {
+          window.dispatchEvent(
+            new CustomEvent("chessapp:join-denied-active-room", {
+              detail: {
+                activeRoom: data.activeRoom,
+                message: "You already have an active game.",
+              },
+            })
+          );
+        } catch (e) {}
+        return false;
+      }
+    } catch (e) {
+      // network error -> allow (server will deny if necessary)
+    }
+    return true;
+  }
+
   return (
     <header className={styles.header}>
       <div className={styles.headerControls}>
@@ -439,7 +475,12 @@ export default function HeaderControls({
             <div className={styles.createActions}>
               <button
                 className={`${styles.btn} btn-secondary ${styles.headerControlsbtn}`}
-                onClick={createRoom}
+                onClick={async () => {
+                  const ok = await ensureNoActiveRoomBeforeCreate();
+                  if (ok) {
+                    createRoom();
+                  }
+                }}
               >
                 Create Room
               </button>

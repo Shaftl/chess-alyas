@@ -1,3 +1,4 @@
+// frontend/components/ChessBoard.js
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -39,6 +40,7 @@ import Clocks from "./chess/Clocks";
 import CapturedPieces from "./chess/CapturedPieces";
 
 import soundManager from "@/lib/soundManager";
+import ActiveRoomModal from "@/components/ActiveRoomModal";
 
 /* Board coords */
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -186,7 +188,6 @@ export default function ChessBoard({
     }
   }
 
-  // ---------------- Drag/drop support ----------------
   // ---------------- Drag/drop support ----------------
   // Called when user starts dragging a piece image
   function handlePieceDragStart(fromSquare, event) {
@@ -1790,10 +1791,46 @@ export default function ChessBoard({
     } catch (e) {}
   }, [gameState.playerColor, gameState.roomId, dispatch, router]);
 
-  // CREATE ROOM (client)
-  function createRoom() {
+  // CREATE ROOM (client) - with activeRoom guard
+  async function createRoom() {
     const s = socketRef.current;
     if (!s) return;
+
+    // If auth user, check server whether they already have an activeRoom
+    try {
+      const uid = auth?.user?.id || auth?.user?._id;
+      if (uid) {
+        const base = API.replace(/\/api\/?$/, "");
+        try {
+          const res = await fetch(
+            `${base}/api/players/${encodeURIComponent(uid)}`,
+            {
+              credentials: "include",
+            }
+          );
+          if (res.ok) {
+            const data = await res.json().catch(() => null);
+            if (data && data.activeRoom) {
+              // fire the global event so ActiveRoomModal opens
+              try {
+                window.dispatchEvent(
+                  new CustomEvent("chessapp:join-denied-active-room", {
+                    detail: {
+                      activeRoom: data.activeRoom,
+                      message: "You already have an active game.",
+                    },
+                  })
+                );
+              } catch (e) {}
+              return;
+            }
+          }
+        } catch (e) {
+          // network error; we'll still attempt to create and let server reject if necessary
+        }
+      }
+    } catch (e) {}
+
     const minutes = Number(createMinutes) || 5;
     const colorPreference = createColorPref || "random";
     const roomId =
@@ -1892,6 +1929,9 @@ export default function ChessBoard({
 
   return (
     <div className={styles.wrapper}>
+      {/* Always mount ActiveRoomModal so it can listen for events */}
+      <ActiveRoomModal />
+
       <div className={styles.playContainer}>
         <div
           className={`${styles.mainLayout} ${
@@ -1937,7 +1977,7 @@ export default function ChessBoard({
                 }`}
                 style={{
                   "--board-texture": "url('/texture.jpg')",
-                  "--texture-opacity": 0.5,
+                  "--texture-opacity": 0.05,
                   "--texture-scale": 1.02,
                 }}
               >

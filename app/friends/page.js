@@ -11,7 +11,8 @@ import styles from "./Friends.module.css";
 
 // API prefix (normalized)
 const RAW_API = (
-  process.env.NEXT_PUBLIC_API_URL || "https://chess-backend-api.onrender.com"
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://chess-backend-api.onrender.com/api"
 ).replace(/\/$/, "");
 const API_PREFIX = RAW_API.endsWith("/api") ? RAW_API : `${RAW_API}/api`;
 
