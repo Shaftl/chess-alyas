@@ -3,6 +3,9 @@ import "@/styles/globals.css";
 import ClientProvider from "../components/ClientProvider";
 import AppChrome from "@/components/AppChrome";
 import InviteModal from "@/components/InviteModal";
+import ActiveRoomModal from "@/components/ActiveRoomModal";
+import GlobalChallengeListener from "@/components/GlobalChallengeListener";
+import GlobalChallengeModal from "@/components/GlobalChallengeModal";
 
 export const metadata = {
   title: "Chess Master Online",
@@ -27,6 +30,10 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ClientProvider>
+          <ActiveRoomModal />
+          {/* global challenge listener + modal (mounted in client chrome) */}
+          <GlobalChallengeListener />
+          <GlobalChallengeModal />
           <AppChrome>{children}</AppChrome>
           <InviteModal />
         </ClientProvider>
