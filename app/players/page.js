@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import axios from "axios";
 import { initSocket } from "@/lib/socketClient";
@@ -16,6 +15,27 @@ const FRIENDS_REQUEST_URL = `${API_PREFIX}/friends/request`;
 const FRIENDS_RESPOND_URL = `${API_PREFIX}/friends/respond`;
 const FRIENDS_DELETE_URL = `${API_PREFIX}/friends`; // DELETE /friends/:id
 const AUTH_ME_URL = `${API_PREFIX}/auth/me`;
+
+// client-side backend origin for turning relative avatar paths into absolute URLs
+const backendOrigin = RAW_API.replace(/\/api\/?$/, "");
+
+function resolveAvatarFrom(candidate) {
+  if (!candidate) return null;
+  if (typeof candidate === "string") {
+    if (/^https?:\/\//i.test(candidate)) return candidate;
+    return `${backendOrigin}${candidate}`;
+  }
+  // support nested objects like { avatarUrl, avatarUrlAbsolute }
+  const alt =
+    candidate.avatarUrlAbsolute ||
+    candidate.avatarUrl ||
+    candidate.fromAvatarUrl ||
+    candidate.fromAvatarUrlAbsolute ||
+    candidate.avatar;
+  if (!alt) return null;
+  if (/^https?:\/\//i.test(alt)) return alt;
+  return `${backendOrigin}${alt}`;
+}
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState([]);
@@ -77,7 +97,15 @@ export default function PlayersPage() {
         withCredentials: true,
       });
       // server returns a single user object for /players/:id
-      setMyProfile(res.data || null);
+      const raw = res.data || null;
+      if (raw) {
+        const avatar = resolveAvatarFrom(
+          raw.avatarUrlAbsolute || raw.avatarUrl || raw.avatar
+        );
+        setMyProfile({ ...raw, avatarUrlAbsolute: avatar });
+      } else {
+        setMyProfile(null);
+      }
     } catch (err) {
       console.error("fetchMyProfile error", err);
       setMyProfile(null);
@@ -98,7 +126,23 @@ export default function PlayersPage() {
         withCredentials: true,
       });
       const playersArr = Array.isArray(res.data) ? res.data : [];
-      setPlayers(playersArr);
+
+      // normalize avatar fields for frontend use only (do not change server)
+      const normalized = playersArr.map((p) => {
+        const avatar =
+          p.avatarUrlAbsolute ||
+          p.avatarUrl ||
+          p.avatar ||
+          (p.user && (p.user.avatarUrlAbsolute || p.user.avatarUrl)) ||
+          null;
+        const avatarUrlAbsolute =
+          avatar && !/^https?:\/\//i.test(avatar)
+            ? `${backendOrigin}${avatar}`
+            : avatar;
+        return { ...p, avatarUrlAbsolute };
+      });
+
+      setPlayers(normalized);
     } catch (err) {
       console.error("fetch players error", {
         message: err.message,
@@ -424,7 +468,9 @@ export default function PlayersPage() {
     try {
       const resp = await axios.delete(
         `${FRIENDS_DELETE_URL}/${encodeURIComponent(targetId)}`,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+        }
       );
       if (resp.data && resp.data.ok) {
         alert("Removed friend");
@@ -533,29 +579,68 @@ export default function PlayersPage() {
         {/* Current user summary card */}
         {currentUserEntry ? (
           <div className={styles.currentUserCard}>
-            <div className={styles.currentUserInfo}>
-              <div className={styles.currentUserName}>
-                {currentUserEntry.displayName || currentUserEntry.username}
-                <span className={styles.youBadge}>You</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div>
+                {currentUserEntry.avatarUrlAbsolute ? (
+                  <img
+                    src={currentUserEntry.avatarUrlAbsolute}
+                    alt="you avatar"
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      background: "#eee",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {(
+                      currentUserEntry.displayName ||
+                      currentUserEntry.username ||
+                      "U"
+                    )
+                      .charAt(0)
+                      .toUpperCase()}
+                  </div>
+                )}
               </div>
-              <div className={styles.currentUserHandle}>
-                @{currentUserEntry.username}
-              </div>
-              <div className={styles.currentUserMeta}>
-                <span>
-                  <span
-                    className={
-                      currentUserEntry.online
-                        ? styles.onlineDot
-                        : styles.offlineDot
-                    }
-                  ></span>
-                  {currentUserEntry.online ? "Online" : "Offline"}
-                </span>
-                • {currentUserEntry.country || "Unknown country"}•{" "}
-                {friendsCount} friends
+
+              <div className={styles.currentUserInfo}>
+                <div className={styles.currentUserName}>
+                  {currentUserEntry.displayName || currentUserEntry.username}
+                  <span className={styles.youBadge}>You</span>
+                </div>
+                <div className={styles.currentUserHandle}>
+                  @{currentUserEntry.username}
+                </div>
+                <div className={styles.currentUserMeta}>
+                  <span>
+                    <span
+                      className={
+                        currentUserEntry.online
+                          ? styles.onlineDot
+                          : styles.offlineDot
+                      }
+                    ></span>
+                    {currentUserEntry.online ? "Online" : "Offline"}
+                  </span>
+                  • {currentUserEntry.country || "Unknown country"}•{" "}
+                  {friendsCount} friends
+                </div>
               </div>
             </div>
+
             <div className={styles.playerActions}>
               <button
                 className={styles.btn}
@@ -584,22 +669,60 @@ export default function PlayersPage() {
             {friendsList.map((p) => (
               <div key={p.id} className={styles.playerCard}>
                 <div className={styles.playerHeader}>
-                  <div className={styles.playerInfo}>
-                    <div className={styles.playerName}>
-                      {p.displayName || p.username}
+                  <div
+                    className={styles.playerInfo}
+                    style={{ display: "flex", alignItems: "center", gap: 12 }}
+                  >
+                    <div>
+                      {p.avatarUrlAbsolute ? (
+                        <img
+                          src={p.avatarUrlAbsolute}
+                          alt={`${p.displayName || p.username} avatar`}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "50%",
+                            background: "#eee",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {(p.displayName || p.username || "U")
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      )}
                     </div>
-                    <div className={styles.playerHandle}>@{p.username}</div>
-                    {p.friends && p.friends.length > 0 && (
-                      <div className={styles.playerFriends}>
-                        Friends:{" "}
-                        {p.friends
-                          .map((f) => f.username)
-                          .slice(0, 3)
-                          .join(", ")}
-                        {p.friends.length > 3 ? "…" : ""}
+
+                    <div>
+                      <div className={styles.playerName}>
+                        {p.displayName || p.username}
                       </div>
-                    )}
+                      <div className={styles.playerHandle}>@{p.username}</div>
+                      {p.friends && p.friends.length > 0 && (
+                        <div className={styles.playerFriends}>
+                          Friends:{" "}
+                          {p.friends
+                            .map((f) => f.username)
+                            .slice(0, 3)
+                            .join(", ")}
+                          {p.friends.length > 3 ? "…" : ""}
+                        </div>
+                      )}
+                    </div>
                   </div>
+
                   <div className={styles.playerStatus}>
                     <div
                       className={`${styles.onlineStatus} ${
@@ -661,12 +784,50 @@ export default function PlayersPage() {
             {othersList.map((p) => (
               <div key={p.id} className={styles.playerCard}>
                 <div className={styles.playerHeader}>
-                  <div className={styles.playerInfo}>
-                    <div className={styles.playerName}>
-                      {p.displayName || p.username}
+                  <div
+                    className={styles.playerInfo}
+                    style={{ display: "flex", alignItems: "center", gap: 12 }}
+                  >
+                    <div>
+                      {p.avatarUrlAbsolute ? (
+                        <img
+                          src={p.avatarUrlAbsolute}
+                          alt={`${p.displayName || p.username} avatar`}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "50%",
+                            background: "#eee",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {(p.displayName || p.username || "U")
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      )}
                     </div>
-                    <div className={styles.playerHandle}>@{p.username}</div>
+
+                    <div>
+                      <div className={styles.playerName}>
+                        {p.displayName || p.username}
+                      </div>
+                      <div className={styles.playerHandle}>@{p.username}</div>
+                    </div>
                   </div>
+
                   <div className={styles.playerStatus}>
                     <div
                       className={`${styles.onlineStatus} ${
@@ -762,13 +923,34 @@ export default function PlayersPage() {
           </div>
         )}
 
-        {/* Incoming challenge modal */}
+        {/* Incoming challenge modal - show avatar if present */}
         {incomingChallenge && (
           <div className={styles.modalOverlay}>
             <div className={styles.modalBox}>
-              <h3 className={styles.modalTitle}>
-                Challenge from {incomingChallenge.from.username}
-              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  marginBottom: 8,
+                }}
+              >
+                {resolveAvatarFrom(incomingChallenge.from) ? (
+                  <img
+                    src={resolveAvatarFrom(incomingChallenge.from)}
+                    alt={`${incomingChallenge.from.username} avatar`}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : null}
+                <h3 className={styles.modalTitle}>
+                  Challenge from {incomingChallenge.from.username}
+                </h3>
+              </div>
               <div className={styles.challengeInfo}>
                 <div>Time: {incomingChallenge.minutes} min</div>
                 <div>Color preference: {incomingChallenge.colorPreference}</div>

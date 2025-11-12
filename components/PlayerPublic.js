@@ -1,75 +1,27 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
-import { format } from "date-fns";
-import styles from "./ProfileEditor.module.css";
 import Link from "next/link";
+import { useSelector } from "react-redux";
+import { format } from "date-fns";
+import { initSocket } from "@/lib/socketClient";
+import styles from "./ProfileEditor.module.css";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-/* ---------- Helpers: backend base + normalization ---------- */
-const BACKEND_BASE =
-  (process.env.NEXT_PUBLIC_BACKEND_BASE_URL &&
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL.replace(/\/$/, "")) ||
-  API.replace(/\/api\/?$/, "");
-
-function normalizeBackendUrl(rawUrl) {
-  if (!rawUrl || typeof rawUrl !== "string") return null;
-  const url = rawUrl.trim();
-
-  // Absolute URL -> if it points to localhost rewrite to BACKEND_BASE, otherwise return as-is.
-  if (/^https?:\/\//i.test(url)) {
-    try {
-      const u = new URL(url);
-      if (
-        u.hostname === "localhost" ||
-        u.hostname === "127.0.0.1" ||
-        u.hostname.endsWith(".local")
-      ) {
-        return `${BACKEND_BASE}${u.pathname}${u.search}${u.hash}`;
-      }
-      return url;
-    } catch (e) {
-      // fall through to treat as relative
-    }
-  }
-
-  // Relative path -> prefix BACKEND_BASE
-  const path = url.startsWith("/") ? url : `/${url}`;
-  return `${BACKEND_BASE}${path}`;
-}
-
-function avatarUrlFromAuthUserObj(user) {
-  if (!user) return null;
-  // prefer explicit absolute field
-  if (user.avatarUrlAbsolute) {
-    const n = normalizeBackendUrl(user.avatarUrlAbsolute);
-    return n || user.avatarUrlAbsolute;
-  }
-  // fallback to avatarUrl or avatar fields
-  if (user.avatarUrl) {
-    const n = normalizeBackendUrl(user.avatarUrl);
-    return n || user.avatarUrl;
-  }
-  if (user.avatar) {
-    const n = normalizeBackendUrl(user.avatar);
-    return n || user.avatar;
-  }
-  return null;
-}
-
-/* ---------- Component ---------- */
-export default function ProfileEditor() {
+/**
+ * PlayerPublic
+ * Props:
+ *   - id: player id or username (the param passed in route)
+ *
+ * Fetches GET /api/players/:id (public) and renders a read-only profile.
+ * Does NOT require authentication; still shows Edit button if viewer === user.
+ */
+export default function PlayerPublic({ id }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(null); // percent 0-100
-  const [bio, setBio] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [cups, setCups] = useState(0);
-  const [file, setFile] = useState(null);
   const [msg, setMsg] = useState(null);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState("");
 
-  // game history state
+  // game history state (added to match ProfileEditor)
   const [gamesLoading, setGamesLoading] = useState(false);
   const [gamesErr, setGamesErr] = useState(null);
   const [games, setGames] = useState([]);
@@ -78,70 +30,129 @@ export default function ProfileEditor() {
   const [totalMoves, setTotalMoves] = useState(0);
   const [lastPlayed, setLastPlayed] = useState(null);
 
-  // ref to hold object URL preview so we can revoke it later
-  const previewUrlRef = useRef(null);
-  const msgRef = useRef(null);
+  // logged-in user from auth slice (if any)
+  const authUser = useSelector((s) => s.auth.user);
+
+  // socket for realtime actions (send friend request + challenge)
+  const socketRef = useRef(null);
+
+  // optimistic pending state for friend request sent from this page
+  const [requestPending, setRequestPending] = useState(false);
+
+  // busy indicator (id of user being acted on)
+  const [busyId, setBusyId] = useState(null);
+
+  // incoming challenge (if user receives a challenge while on profile)
+  const [incomingChallenge, setIncomingChallenge] = useState(null);
 
   useEffect(() => {
+    if (!id) return;
     fetchProfile();
-    // cleanup on unmount: revoke any created object URL
-    return () => {
-      if (previewUrlRef.current) {
-        try {
-          URL.revokeObjectURL(previewUrlRef.current);
-        } catch (e) {
-          // ignore
-        }
-        previewUrlRef.current = null;
-      }
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [id]);
 
-  useEffect(() => {
-    if (msg && msgRef.current) {
-      // scroll message into view and focus it so the user sees it
-      msgRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      // make the message focusable by adding tabIndex (we'll add that to the div)
-      try {
-        msgRef.current.focus();
-      } catch (e) {
-        /* ignore */
-      }
-    }
-  }, [msg]);
-
-  // when profile loads, fetch game history
   useEffect(() => {
     if (!profile || !profile.id) return;
     fetchGamesForProfile(profile.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
+  useEffect(() => {
+    // initialize socket once for this component (reuses underlying client implementation)
+    const s = initSocket();
+    socketRef.current = s;
+
+    s.on("connect", () => {
+      // no-op; socket ready to emit
+    });
+
+    // keep ability to show incoming challenge modal when we are on a player's page
+    s.on("challenge-received", (payload) => {
+      setIncomingChallenge(payload);
+    });
+
+    // handle challenge accepted (redirect to room if payload.roomId provided)
+    s.on("challenge-accepted", (payload) => {
+      if (payload && payload.roomId) {
+        const path =
+          (payload.redirectPath || "/play") +
+          `/${encodeURIComponent(payload.roomId)}`;
+        window.location.href = path;
+      }
+    });
+
+    // challenge declined feedback
+    s.on("challenge-declined", (payload) => {
+      if (payload?.reason) alert(`Challenge declined: ${payload.reason}`);
+    });
+
+    return () => {
+      try {
+        s.off("connect");
+        s.off("challenge-received");
+        s.off("challenge-accepted");
+        s.off("challenge-declined");
+      } catch (e) {}
+    };
+  }, []);
+
   async function fetchProfile() {
     setLoading(true);
     setMsg(null);
+    setProfile(null);
     try {
-      const res = await fetch(`${API}/auth/me`, {
-        credentials: "include",
-      });
-
+      // public endpoint - do not include credentials for profile
+      const res = await fetch(`${API}/players/${encodeURIComponent(id)}`);
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setMsg({ type: "error", text: j.error || "Unable to fetch profile" });
+        setMsg(j.error || `Player not found`);
         setLoading(false);
         return;
       }
       const data = await res.json();
 
-      // Normalize avatar using helper (supports absolute ImageKit CDN, localhost rewrites, relative uploads)
-      const finalAvatar = avatarUrlFromAuthUserObj({
-        avatarUrlAbsolute: data.avatarUrlAbsolute,
-        avatarUrl: data.avatarUrl,
-        avatar: data.avatar,
-      });
+      // -------------------------
+      // FIXED: Normalize avatar -> prefer absolute
+      // - prefer avatarUrlAbsolute if provided
+      // - accept avatarUrl / avatar when already absolute
+      // - if relative path (e.g. "/uploads/abc.jpg" or "uploads/abc.jpg")
+      //   prepend backend origin derived from env
+      // -------------------------
+      const backendOrigin =
+        process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+        (
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
+        ).replace(/\/api\/?$/, "");
+
+      let finalAvatar = null;
+
+      // prefer explicit absolute field if present
+      if (
+        data.avatarUrlAbsolute &&
+        /^https?:\/\//i.test(data.avatarUrlAbsolute)
+      ) {
+        finalAvatar = data.avatarUrlAbsolute;
+      } else if (data.avatarUrl && /^https?:\/\//i.test(data.avatarUrl)) {
+        finalAvatar = data.avatarUrl;
+      } else if (data.avatar && /^https?:\/\//i.test(data.avatar)) {
+        finalAvatar = data.avatar;
+      } else {
+        // fallback: if any relative avatar field exists, convert to absolute
+        const candidate = data.avatarUrl || data.avatar || null;
+        if (candidate) {
+          // avoid double-slash: if candidate already starts with '/', just concat
+          finalAvatar = candidate.startsWith("/")
+            ? `${backendOrigin}${candidate}`
+            : `${backendOrigin}/${candidate}`;
+        } else {
+          finalAvatar = null;
+        }
+      }
+
+      // assign normalized avatar URL back to profile (frontend-only)
       data.avatarUrl = finalAvatar;
 
+      // flag / country enrichment (non-blocking)
       data.flagUrl = data.flagUrl || null;
       data.country = data.country || null;
       data.countryName = data.countryName || null;
@@ -150,52 +161,29 @@ export default function ProfileEditor() {
         data.flagUrl = `https://flagcdn.com/w40/${data.country.toLowerCase()}.png`;
       }
 
-      try {
-        if (!data.countryName && data.country) {
-          const cca = data.country.toLowerCase();
-          const rr = await fetch(`https://restcountries.com/v3.1/alpha/${cca}`);
-          if (rr.ok) {
-            const j = await rr.json();
-            if (Array.isArray(j) && j[0]) {
-              data.countryName =
-                j[0].name?.common || j[0].name?.official || data.country;
-              if (!data.flagUrl && j[0].cca2) {
-                data.flagUrl = `https://flagcdn.com/w40/${j[0].cca2.toLowerCase()}.png`;
-              }
-            }
-          }
-        } else if (!data.countryName && !data.country && data.lastIp) {
-          const ip = data.lastIp;
-          const r = await fetch(`https://ipapi.co/${ip}/json/`);
-          if (r.ok) {
-            const j = await r.json();
-            const code = j.country_code || null;
-            const name = j.country_name || j.country || null;
-            if (code) {
-              data.country = code;
-              data.flagUrl = `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
-            }
-            if (name) {
-              data.countryName = name;
-            }
-          }
-        }
-      } catch (err) {
-        // ignore enrichment errors
-      }
-
       setProfile(data);
-      setBio(data.bio || "");
-      setDisplayName(data.displayName || "");
-      setCups(data.cups || 0);
     } catch (err) {
-      setMsg({ type: "error", text: "Network error" });
+      setMsg("Network error");
     } finally {
       setLoading(false);
     }
   }
 
-  // fetch games for profile id
+  /**
+   * Helper to produce canonical room id (strip "-<timestamp>" suffix when present)
+   * (copied from ProfileEditor)
+   */
+  function canonicalRoomId(roomIdRaw) {
+    if (!roomIdRaw) return "";
+    const r = String(roomIdRaw);
+    const idx = r.indexOf("-");
+    if (idx === -1) return r;
+    const suffix = r.slice(idx + 1);
+    if (/^\d+$/.test(suffix)) return r.slice(0, idx);
+    return r;
+  }
+
+  // fetch games for profile id (mirrors ProfileEditor)
   async function fetchGamesForProfile(userId) {
     setGamesLoading(true);
     setGamesErr(null);
@@ -231,11 +219,7 @@ export default function ProfileEditor() {
           const pu = p.user || {};
           // candidate avatar fields (check common places)
           let avatar =
-            pu.avatarUrlAbsolute ||
-            pu.avatarUrl ||
-            pu.avatar ||
-            p.avatarUrl ||
-            null;
+            pu.avatarUrlAbsolute || pu.avatarUrl || p.avatarUrl || null;
 
           if (avatar && !/^https?:\/\//i.test(avatar)) {
             avatar = `${backendOrigin}${avatar}`;
@@ -246,7 +230,7 @@ export default function ProfileEditor() {
             ...p,
             user: {
               ...pu,
-              avatarUrl: pu.avatarUrl || pu.avatar || p.avatarUrl || null,
+              avatarUrl: pu.avatarUrl || p.avatarUrl || null,
               avatarUrlAbsolute: avatar || null,
             },
           };
@@ -255,8 +239,7 @@ export default function ProfileEditor() {
         // normalize messages' user avatars (if any)
         const messages = (g.messages || []).map((m) => {
           const mu = m.user || {};
-          let avatar =
-            mu.avatarUrlAbsolute || mu.avatarUrl || mu.avatar || null;
+          let avatar = mu.avatarUrlAbsolute || mu.avatarUrl || null;
           if (avatar && !/^https?:\/\//i.test(avatar)) {
             avatar = `${backendOrigin}${avatar}`;
           }
@@ -264,7 +247,7 @@ export default function ProfileEditor() {
             ...m,
             user: {
               ...mu,
-              avatarUrl: mu.avatarUrl || mu.avatar || null,
+              avatarUrl: mu.avatarUrl || null,
               avatarUrlAbsolute: avatar || null,
             },
           };
@@ -322,241 +305,155 @@ export default function ProfileEditor() {
     }
   }
 
-  // handle file input change: show preview immediately and start upload
-  function handleFileChange(e) {
-    const selected = e.target.files?.[0] || null;
-    if (!selected) return;
+  const isSelf =
+    authUser &&
+    profile &&
+    String(authUser.id || authUser._id) === String(profile.id || profile._id);
 
-    // revoke previous preview if any
-    if (previewUrlRef.current) {
-      try {
-        URL.revokeObjectURL(previewUrlRef.current);
-      } catch (err) {
-        // ignore
-      }
-      previewUrlRef.current = null;
-    }
+  // derive friend state (best-effort): if profile.friends contains authUser -> they are friends
+  const isFriend = React.useMemo(() => {
+    if (!authUser || !profile || !Array.isArray(profile.friends)) return false;
+    const idStr = String(authUser.id || authUser._id);
+    return profile.friends.some((f) => String(f.id) === idStr);
+  }, [authUser, profile]);
 
-    const previewUrl = URL.createObjectURL(selected);
-    previewUrlRef.current = previewUrl;
+  // check if target is online (profile.online provided by backend)
+  const isOnline = !!(profile && profile.online);
 
-    setFile(selected);
-
-    // show the image right away in UI
-    setProfile((p) => ({ ...(p || {}), avatarUrl: previewUrl }));
-
-    // start upload immediately
-    uploadAvatar(selected);
-  }
-
-  // uploadAvatar now accepts either an Event (from a form submit) or a File (from handleFileChange)
-  // we use XMLHttpRequest to provide upload progress reporting (fetch has no upload progress)
-  function uploadAvatar(eOrFile) {
-    // allow calling from a form submit or directly with a File
-    if (eOrFile && typeof eOrFile.preventDefault === "function") {
-      eOrFile.preventDefault();
-    }
-
-    const fileToUse =
-      eOrFile instanceof File
-        ? eOrFile
-        : eOrFile && eOrFile.target && eOrFile.target.files
-        ? eOrFile.target.files[0]
-        : file;
-
-    if (!fileToUse) {
-      setMsg({ type: "error", text: "Choose a file first" });
+  // Send friend request: prefer socket with ack, fallback REST
+  async function sendFriendRequest() {
+    if (!authUser) {
+      alert("You must be signed in to add friends");
       return;
     }
-
-    setLoading(true);
-    setMsg(null);
-    setUploadProgress(0);
-
-    const form = new FormData();
-    form.append("avatar", fileToUse);
-
-    try {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${API}/auth/upload-avatar`);
-      xhr.withCredentials = true;
-
-      xhr.upload.onprogress = (ev) => {
-        if (ev.lengthComputable) {
-          const pct = Math.round((ev.loaded / ev.total) * 100);
-          setUploadProgress(pct);
-        }
-      };
-
-      xhr.onload = () => {
-        let j = {};
-        try {
-          j = JSON.parse(xhr.responseText || "{}");
-        } catch (err) {
-          // ignore parse error
-        }
-
-        if (xhr.status >= 200 && xhr.status < 300) {
-          let avatarUrl = null;
-          if (
-            j.avatarUrlAbsolute &&
-            /^https?:\/\//i.test(j.avatarUrlAbsolute)
-          ) {
-            avatarUrl = j.avatarUrlAbsolute;
-          } else if (j.avatarUrl && /^https?:\/\//i.test(j.avatarUrl)) {
-            avatarUrl = j.avatarUrl;
-          } else if (j.avatarUrl) {
-            const backendOrigin =
-              process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-              API.replace(/\/api\/?$/, "");
-            avatarUrl = `${backendOrigin}${j.avatarUrl}`;
-          }
-
-          // normalize final avatar (in case it's localhost or relative)
-          const normalized = normalizeBackendUrl(avatarUrl) || avatarUrl;
-
-          // update profile everywhere
-          setProfile((p) => ({ ...(p || {}), avatarUrl: normalized }));
-          setMsg({ type: "success", text: "Avatar uploaded successfully" });
-
-          // if we had a blob preview (created with URL.createObjectURL), revoke it now
-          const hadPreviewBlob =
-            previewUrlRef.current &&
-            String(previewUrlRef.current).startsWith("blob:");
-          if (hadPreviewBlob && previewUrlRef.current) {
-            try {
-              URL.revokeObjectURL(previewUrlRef.current);
-            } catch (err) {
-              // ignore
-            }
-            previewUrlRef.current = null;
-          }
-        } else {
-          setMsg({ type: "error", text: j.error || "Upload failed" });
-        }
-
-        setLoading(false);
-        setUploadProgress(null);
-        setFile(null);
-      };
-
-      xhr.onerror = () => {
-        setMsg({ type: "error", text: "Upload error" });
-        setLoading(false);
-        setUploadProgress(null);
-      };
-
-      xhr.send(form);
-    } catch (err) {
-      setMsg({ type: "error", text: "Upload error" });
-      setLoading(false);
-      setUploadProgress(null);
+    if (!profile || !profile.id) {
+      alert("Cannot add friend: missing target id");
+      return;
     }
-  }
+    if (String(profile.id) === String(authUser.id || authUser._id)) {
+      alert("Cannot friend yourself");
+      return;
+    }
+    if (isFriend) {
+      alert("Already friends");
+      return;
+    }
+    // optimistic
+    setRequestPending(true);
+    setBusyId(profile.id);
 
-  async function saveProfile(e) {
-    e.preventDefault();
-    setLoading(true);
-    setMsg(null);
-    try {
-      const res = await fetch(`${API}/auth/profile`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ displayName, bio, cups }),
-      });
-
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setMsg({ type: "error", text: j.error || "Save failed" });
-      } else {
-        let avatarUrl = null;
-        if (j.avatarUrlAbsolute && /^https?:\/\//i.test(j.avatarUrlAbsolute)) {
-          avatarUrl = j.avatarUrlAbsolute;
-        } else if (j.avatarUrl && /^https?:\/\//i.test(j.avatarUrl)) {
-          avatarUrl = j.avatarUrl;
-        } else if (j.avatarUrl) {
-          const backendOrigin =
-            process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-            API.replace(/\/api\/?$/, "");
-          avatarUrl = `${backendOrigin}${j.avatarUrl}`;
-        }
-
-        // normalize avatar before storing on client
-        const normalizedAvatar = normalizeBackendUrl(avatarUrl) || avatarUrl;
-        j.avatarUrl = normalizedAvatar;
-
-        const updated = {
-          ...profile,
-          ...j,
-        };
-
-        if (j.country && !updated.countryName) {
-          try {
-            const cca = j.country.toLowerCase();
-            const rr = await fetch(
-              `https://restcountries.com/v3.1/alpha/${cca}`
-            );
-            if (rr.ok) {
-              const jj = await rr.json();
-              if (Array.isArray(jj) && jj[0]) {
-                updated.countryName =
-                  jj[0].name?.common || jj[0].name?.official || j.country;
-                if (!updated.flagUrl && jj[0].cca2) {
-                  updated.flagUrl = `https://flagcdn.com/w40/${jj[0].cca2.toLowerCase()}.png`;
-                }
-              }
-            }
-          } catch (err) {
-            // ignore
+    const s = socketRef.current;
+    if (s && s.connected) {
+      try {
+        s.emit("send-friend-request", { toUserId: profile.id }, (resp) => {
+          if (!resp || !resp.ok) {
+            alert(`Failed: ${resp?.error || "unknown"}`);
+            setRequestPending(false);
+          } else {
+            alert("Friend request sent");
+            // backend will notify /players list - but we can keep optimistic state until next refresh
           }
-        }
-
-        setProfile(updated);
-        setMsg({ type: "success", text: "Profile updated successfully" });
-        setIsEditProfileOpen(false);
-
-        // scroll to the message so the user sees the success/error box
-        if (msgRef.current) {
-          msgRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-          try {
-            msgRef.current.focus();
-          } catch (e) {
-            /* ignore */
-          }
-        }
+          setBusyId(null);
+        });
+      } catch (err) {
+        console.error("socket send-friend-request error", err);
+        alert("Friend request failed (socket)");
+        setRequestPending(false);
+        setBusyId(null);
       }
-    } catch (err) {
-      setMsg({ type: "error", text: "Save error" });
-    } finally {
-      setLoading(false);
+    } else {
+      // fallback REST
+      try {
+        const resp = await fetch(`${API}/friends/request`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ toUserId: profile.id }),
+        });
+        const j = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          alert(`Failed: ${j.error || resp.status}`);
+          setRequestPending(false);
+        } else {
+          alert("Friend request sent");
+        }
+      } catch (err) {
+        console.error("sendFriendRequest error", err);
+        alert("Friend request failed (network)");
+        setRequestPending(false);
+      } finally {
+        setBusyId(null);
+      }
     }
   }
 
-  const flagUrl =
-    profile &&
-    (profile.flagUrl ||
-      (profile.country
-        ? `https://flagcdn.com/w40/${profile.country.toLowerCase()}.png`
-        : null));
+  // Challenge: prefer socket with ack (server will create room and notify recipient)
+  function openChallengeModal() {
+    // For PlayerPublic we want the modal like players page, but for now keep a quick prompt UX
+    if (!authUser) return alert("Sign in to challenge");
+    if (!profile || !profile.id) return alert("Missing target");
+    if (!isOnline) return alert("Player is offline");
+    if (isSelf) return alert("Cannot challenge yourself");
 
-  /* Helper to produce canonical room id (strip "-<timestamp>" suffix when present) */
-  function canonicalRoomId(roomIdRaw) {
-    if (!roomIdRaw) return "";
-    const r = String(roomIdRaw);
-    // if it matches pattern like ABCDEF-1234567890, return prefix
-    const idx = r.indexOf("-");
-    if (idx === -1) return r;
-    // if suffix is numeric timestamp, strip it
-    const suffix = r.slice(idx + 1);
-    if (/^\d+$/.test(suffix)) return r.slice(0, idx);
-    // otherwise keep original (some roomIds may legitimately contain '-')
-    return r;
+    const minutesStr = prompt("Minutes (e.g. 5):", "5");
+    if (minutesStr === null) return;
+    let minutes = parseInt(minutesStr, 10);
+    if (!isFinite(minutes) || minutes < 1) minutes = 5;
+    const color = prompt(
+      'Color preference ("random", "white", "black"):',
+      "random"
+    );
+    const colorPreference =
+      color === "white" || color === "black" ? color : "random";
+
+    sendChallenge({ minutes, colorPreference });
+  }
+
+  function sendChallenge({ minutes = 5, colorPreference = "random" } = {}) {
+    if (!authUser) return alert("Sign in to challenge");
+    if (!profile || !profile.id) return alert("Missing target");
+
+    const s = socketRef.current;
+    setBusyId(profile.id);
+
+    if (s && s.connected) {
+      try {
+        s.emit(
+          "challenge",
+          { toUserId: profile.id, minutes, colorPreference },
+          (resp) => {
+            if (!resp || !resp.ok) {
+              alert(`Failed to send challenge: ${resp?.error || "unknown"}`);
+            } else {
+              alert("Challenge sent");
+            }
+            setBusyId(null);
+          }
+        );
+      } catch (err) {
+        console.error("challenge emit error", err);
+        alert("Challenge failed (socket)");
+        setBusyId(null);
+      }
+    } else {
+      // No socket — fallback (server may not accept challenge over REST; try POST to /api/challenge if you have one)
+      alert("Not connected to realtime server; challenge not sent.");
+      setBusyId(null);
+    }
+  }
+
+  // incoming challenge modal handlers
+  function acceptIncomingChallenge() {
+    const s = socketRef.current;
+    if (!s || !incomingChallenge) return;
+    s.emit("accept-challenge", { challengeId: incomingChallenge.challengeId });
+    setIncomingChallenge(null);
+  }
+  function declineIncomingChallenge() {
+    const s = socketRef.current;
+    if (!s || !incomingChallenge) return;
+    s.emit("decline-challenge", { challengeId: incomingChallenge.challengeId });
+    setIncomingChallenge(null);
   }
 
   return (
@@ -564,74 +461,25 @@ export default function ProfileEditor() {
       {loading && (
         <div className={styles.loadingOverlay}>
           <div className={styles.loadingSpinner}></div>
-          <span>Loading...</span>
+          <span>Loading player…</span>
         </div>
       )}
 
       {msg && (
-        <div
-          ref={msgRef}
-          tabIndex={-1} // allows focus()
-          className={`${styles.message} ${styles[msg.type]}`}
-        >
-          {msg.type === "success" ? (
-            <div className={styles.msgBox}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                id="Circle-Check--Streamline-Font-Awesome"
-                height="16"
-                width="16"
-              >
-                <desc>
-                  Circle Check Streamline Icon: https://streamlinehq.com
-                </desc>
-                <path
-                  d="M8 16a8 8 0 1 0 0 -16 8 8 0 1 0 0 16zm3.53125 -9.46875L7.53125 10.53125c-0.29375 0.29375 -0.76875 0.29375 -1.059375 0l-2 -2c-0.29375 -0.29375 -0.29375 -0.76875 0 -1.059375s0.76875 -0.29375 1.059375 0l1.46875 1.46875L10.46875 5.46875c0.29375 -0.29375 0.76875 -0.29375 1.059375 0s0.29375 0.76875 0 1.059375z"
-                  fill="#000000"
-                  strokeWidth="0.0313"
-                ></path>
-              </svg>{" "}
-              <span> {msg.text}</span>{" "}
-            </div>
-          ) : (
-            <div className={styles.msgBox}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                id="Circle-Xmark--Streamline-Font-Awesome"
-                height="16"
-                width="16"
-              >
-                <desc>
-                  Circle Xmark Streamline Icon: https://streamlinehq.com
-                </desc>
-                <path
-                  d="M8 16a8 8 0 1 0 0 -16 8 8 0 1 0 0 16zm-2.53125 -10.53125c0.29375 -0.29375 0.76875 -0.29375 1.059375 0l1.46875 1.46875 1.46875 -1.46875c0.29375 -0.29375 0.76875 -0.29375 1.059375 0s0.29375 0.76875 0 1.059375l-1.46875 1.46875 1.46875 1.46875c0.29375 0.29375 0.29375 0.76875 0 1.059375s-0.76875 0.29375 -1.059375 0l-1.46875 -1.46875 -1.46875 1.46875c0.29375 0.29375 0.76875 0.29375 1.059375 0s0.29375 -0.76875 0 -1.059375l1.46875 -1.46875 -1.46875 -1.46875c-0.29375 -0.29375 -0.29375 -0.76875 0 -1.059375z"
-                  fill="#000000"
-                  strokeWidth="0.0313"
-                ></path>
-              </svg>
-              <span> {msg.text}</span>{" "}
-            </div>
-          )}
+        <div className={styles.message}>
+          <div className={styles.msgBox}>{msg}</div>
         </div>
       )}
 
-      {!profile && !loading && (
+      {!profile && !loading && !msg && (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>👤</div>
-          <h3>No Profile Found</h3>
-          <p>Unable to load your profile information</p>
-          <button onClick={fetchProfile} className={styles.primaryButton}>
-            Try Again
-          </button>
+          <h3>No player data</h3>
         </div>
       )}
 
       {profile && (
         <div className={styles.profileContainer}>
-          {/* Profile Header Card */}
           <div className={styles.profileCard}>
             <div className={styles.avatarSection}>
               <div className={styles.avatarContainer}>
@@ -648,63 +496,15 @@ export default function ProfileEditor() {
                       .toUpperCase()}
                   </div>
                 )}
-                <label htmlFor="avatar-upload" className={styles.fileLabel}>
-                  <div className={styles.avatarOverlay}>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 16 16"
-                      id="Camera--Streamline-Font-Awesome"
-                      height="16"
-                      width="16"
-                    >
-                      <desc>
-                        Camera Streamline Icon: https://streamlinehq.com
-                      </desc>
-                      <path
-                        d="M4.659375 2.025 4.334375 3H2c-1.103125 0 -2 0.896875 -2 2v8c0 1.103125 0.896875 2 2 2h12c1.103125 0 2 -0.896875 2 -2V5c0 -1.103125 -0.896875 -2 -2 -2h-2.334375l-0.325 -0.975C11.1375 1.4125 10.565625 1 9.91875 1H6.08125c-0.646875 0 -1.21875 0.4125 -1.421875 1.025zM8 6a3 3 0 1 1 0 6 3 3 0 1 1 0 -6z"
-                        fill="#000000"
-                        strokeWidth="0.0313"
-                      ></path>
-                    </svg>
-                  </div>
-                </label>
               </div>
-
-              <div className={styles.avatarUpload}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className={styles.fileInput}
-                  id="avatar-upload"
-                  style={{ display: "none" }}
-                  disabled={loading}
-                />
-              </div>
-
-              {/* Upload progress UI (only visible while uploading) */}
-              {uploadProgress !== null && (
-                <div className={styles.uploadProgress} aria-live="polite">
-                  <div className={styles.progressLabel}>Uploading...</div>
-                  <div className={styles.progressBar}>
-                    <div
-                      className={styles.progressFill}
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                  <div className={styles.progressPercent}>
-                    {uploadProgress}%
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className={styles.profileInfo}>
               <div className={styles.nameSection}>
                 <div className={styles.location}>
-                  {flagUrl && (
+                  {profile.flagUrl && (
                     <img
-                      src={flagUrl}
+                      src={profile.flagUrl}
                       alt={profile.country}
                       className={styles.flag}
                     />
@@ -736,9 +536,12 @@ export default function ProfileEditor() {
                   </svg>
                   <div className={`${styles.detailItemBio}`}>
                     <span className={styles.detailLabel}>Bio - </span>{" "}
-                    <span className={styles.detailValue}>{bio}</span>
+                    <span className={styles.detailValue}>
+                      {profile.bio || "This player has not added a bio yet."}
+                    </span>
                   </div>
                 </div>
+
                 <div className={styles.detailItem}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -758,9 +561,12 @@ export default function ProfileEditor() {
                   </svg>
                   <div>
                     <span className={styles.detailLabel}>Email - </span>{" "}
-                    <span className={styles.detailValue}>{profile.email}</span>
+                    <span className={styles.detailValue}>
+                      {profile.email || "Hidden"}
+                    </span>
                   </div>
                 </div>
+
                 <div className={styles.detailItem}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -794,15 +600,17 @@ export default function ProfileEditor() {
               <div className={styles.cupsIcon}>🏆</div>
               <div className={styles.cupsContent}>
                 <div className={styles.cupsLabel}>Cups: </div>
-                <div className={styles.cupsValue}>({profile.cups})</div>
+                <div className={styles.cupsValue}>({profile.cups ?? 0})</div>
               </div>
             </div>
           </div>
 
-          {/* Edit Form + Game History */}
-          <div className={styles.formCard}>
+          {/* Public view: show player's game history similar to ProfileEditor */}
+          <div
+            className={`${styles.formCard} ${styles.formCardGame} ${styles.formCardPublic}`}
+          >
             <div className={styles.gameHistory}>
-              <h3>Game History</h3>
+              <h3>Player Game History</h3>
 
               <div className={styles.gameHistoryBody}>
                 {gamesLoading ? (
@@ -820,14 +628,17 @@ export default function ProfileEditor() {
                         <div className={styles.statLabel}>Games played</div>
                         <div className={styles.statValue}>{totalGames}</div>
                       </div>
+
                       <div className={styles.statItem}>
                         <div className={styles.statLabel}>Unique opponents</div>
                         <div className={styles.statValue}>{opponentsCount}</div>
                       </div>
+
                       <div className={styles.statItem}>
                         <div className={styles.statLabel}>Total moves</div>
                         <div className={styles.statValue}>{totalMoves}</div>
                       </div>
+
                       <div className={styles.statItem}>
                         <div className={styles.statLabel}>Last played</div>
                         <div className={styles.statValue}>
@@ -901,10 +712,10 @@ export default function ProfileEditor() {
                             className={styles.gameCard}
                           >
                             <div className={styles.gameHeader}>
-                              <div className={styles.gameDate}>{dateStr}</div>
                               <div className={styles.gameMoves}>
                                 {movesCount} moves
                               </div>
+                              <div className={styles.gameDate}>{dateStr}</div>
                             </div>
                             <div className={styles.gameContent}>
                               <div className={styles.opponentInfo}>
@@ -929,9 +740,7 @@ export default function ProfileEditor() {
                                 </div>
                               </div>
                               <div className={styles.gameMeta}>
-                                <div className={styles.metaLabel}>
-                                  Your Color
-                                </div>
+                                <div className={styles.metaLabel}>Color</div>
                                 <div
                                   className={`${styles.colorBadge} ${
                                     styles[yourColor.toLowerCase()]
@@ -963,93 +772,110 @@ export default function ProfileEditor() {
               </div>
             </div>
 
-            <div className={styles.editProfile}>
-              <h3
-                className={`${styles.formTitle} ${
-                  !isEditProfileOpen && styles.formTitleNonMargin
-                }`}
-                onClick={() => setIsEditProfileOpen((e) => !e)}
+            <div
+              className={`${styles.editProfile} ${styles.editProfilePublic}`}
+            >
+              {/* Add Friend button */}
+              <button
+                className={`${styles.btn} ${styles.btnChallenge}`}
+                onClick={sendFriendRequest}
+                disabled={
+                  requestPending || busyId === profile.id || isSelf || isFriend
+                }
+                title={
+                  isSelf
+                    ? "This is your profile"
+                    : isFriend
+                    ? "Already friends"
+                    : requestPending
+                    ? "Request pending"
+                    : "Add Friend"
+                }
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"
-                  id="User-Pen--Streamline-Font-Awesome"
+                  id="User-Plus--Streamline-Font-Awesome"
                   height="16"
                   width="16"
                 >
                   <desc>
-                    User Pen Streamline Icon: https://streamlinehq.com
+                    User Plus Streamline Icon: https://streamlinehq.com
                   </desc>
                   <path
-                    d="M5.6488575 8c2.4144725000000005 0 3.923515 -2.6137425000000003 2.7162800000000002 -4.704735 -0.56028 -0.9704325000000001 -1.59572 -1.5682450000000001 -2.7162800000000002 -1.5682450000000001 -2.41447 0 -3.923515 2.6137425000000003 -2.7162800000000002 4.704735C3.4928575000000004 7.4021875 4.5282975 8 5.6488575 8Zm-1.119825 1.176185C2.1154050000000004 9.176185 0.16000000000000003 11.131590000000001 0.16000000000000003 13.545217500000001c0 0.4018625 0.3259 0.7277625 0.7277625 0.7277625h7.1820725c-0.07596000000000001 -0.2156325 -0.09066250000000001 -0.45087000000000005 -0.034305 -0.6812075000000001l0.3675575 -1.4726800000000002c0.0686125 -0.2768925 0.210735 -0.52683 0.411665 -0.7277625l0.9875050000000001 -0.9875050000000001c-0.786575 -0.7596175000000001 -1.85494 -1.22764 -3.0360250000000004 -1.22764h-2.2372Zm10.6714175 -1.6736125000000002c-0.38226000000000004 -0.38226000000000004 -1.0022075 -0.38226000000000004 -1.3869175 0l-0.7204125000000001 0.7204125000000001 1.7397725000000002 1.7397725000000002 0.7204125000000001 -0.7204125000000001c0.38226000000000004 -0.38226000000000004 0.38226000000000004 -1.0022075 0 -1.3869175l-0.35285500000000003 -0.35285500000000003ZM9.37099 11.945117500000002c-0.1004675 0.10046500000001 -0.17152750000000003 0.22543500000002 -0.2058325 0.365105l-0.3675575 1.4726800000000002c-0.034305 0.13477250000000002 0.004900000000000001 0.274445 0.102915 0.37246s0.23768750000000002 0.13722 0.37246 0.102915l1.4726800000000002 -0.3675575c0.13722 -0.034305 0.26464 -0.1053675 0.365105 -0.2058325l3.1658950000000003 -3.1683450000000004 -1.73977 -1.7397725000000002 -3.1658950000000003 3.1683475000000003Z"
+                    d="M2.5120000000000005 4.864000000000001c0 -2.414095 2.6133325000000003 -3.9229025 4.704 -2.7158550000000004 0.9702825000000002 0.5601925 1.568 1.5954700000000002 1.568 2.7158550000000004 0 2.414095 -2.6133325000000003 3.9229025 -4.704 2.7158550000000004 -0.9702825000000002 -0.5601925 -1.568 -1.5954700000000002 -1.568 -2.7158550000000004ZM0.16000000000000003 13.544350000000001c0 -2.41325 1.9550999999999998 -4.36835 4.36835 -4.36835h2.2393c2.41325 0 4.36835 1.9550999999999998 4.36835 4.36835 0 0.4018 -0.32585000000000003 0.7276500000000001 -0.7276500000000001 0.7276500000000001H0.88765c-0.4018 0 -0.7276500000000001 -0.32585000000000003 -0.7276500000000001 -0.7276500000000001ZM12.508000000000001 9.372v-1.568H10.940000000000001c-0.32585000000000003 0 -0.588 -0.26215000000000005 -0.588 -0.588s0.26215000000000005 -0.588 0.588 -0.588h1.568V5.0600000000000005c0 -0.32585000000000003 0.26215000000000005 -0.588 0.588 -0.588s0.588 0.26215000000000005 0.588 0.588v1.568h1.568c0.32585000000000003 0 0.588 0.26215000000000005 0.588 0.588s-0.26215000000000005 0.588 -0.588 0.588h-1.568v1.568c0 0.32585000000000003 -0.26215000000000005 0.588 -0.588 0.588s-0.588 -0.26215000000000005 -0.588 -0.588Z"
                     fill="#000000"
                     strokeWidth="0.025"
                   ></path>
-                </svg>{" "}
-                <span>Edit Profile</span>
+                </svg>
+                <span>
+                  {isSelf
+                    ? "You"
+                    : isFriend
+                    ? "Friends"
+                    : requestPending
+                    ? "Request sent"
+                    : "Add Friend"}
+                </span>
+              </button>
+
+              {/* Challenge button */}
+              <button
+                className={`${styles.btn} ${styles.primaryButton}`}
+                onClick={openChallengeModal}
+                disabled={!isOnline || isSelf || busyId === profile.id}
+                title={
+                  !isOnline
+                    ? "Player offline"
+                    : isSelf
+                    ? "Cannot challenge yourself"
+                    : "Challenge"
+                }
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"
-                  id="Arrow-Down--Streamline-Font-Awesome"
+                  id="Chess-King--Streamline-Font-Awesome"
                   height="16"
                   width="16"
                 >
                   <desc>
-                    Arrow Down Streamline Icon: https://streamlinehq.com
+                    Chess King Streamline Icon: https://streamlinehq.com
                   </desc>
                   <path
-                    d="M7.2089541666666666 15.511858333333333c0.437525 0.43752083333333336 1.1480666666666666 0.43752083333333336 1.5855916666666667 0l5.600312499999999 -5.600312499999999c0.43752083333333336 -0.437525 0.43752083333333336 -1.1480666666666666 0 -1.5855916666666667s-1.1480666666666666 -0.437525 -1.5855916666666667 0l-3.6892041666666664 3.692708333333333V1.2800624999999999C9.1200625 0.6605291666666666 8.619533333333333 0.15999999999999998 8 0.15999999999999998s-1.1200625 0.5005291666666667 -1.1200625 1.1200625v10.7351l-3.6892041666666664 -3.685708333333333c-0.437525 -0.437525 -1.1480666666666666 -0.437525 -1.5855916666666667 0s-0.437525 1.1480666666666666 0 1.5855916666666667l5.600312499999999 5.600312499999999Z"
+                    d="M8 0.16c0.5420642857142857 0 0.98 0.4379392857142857 0.98 0.98v0.49h0.49c0.5420642857142857 0 0.98 0.4379392857142857 0.98 0.98s-0.43793571428571426 0.98 -0.98 0.98h-0.49v1.4699999999999998h4.655c0.6768107142857143 0 1.2249999999999999 0.5481892857142857 1.2249999999999999 1.2249999999999999 0 0.16231428571428572 -0.030625 0.3215642857142857 -0.09493928571428571 0.471625L12.41 12.41H3.59L1.2349357142857142 6.756625c-0.06431071428571428 -0.15006071428571427 -0.09493571428571428 -0.30931071428571427 -0.09493571428571428 -0.471625 0 -0.6768107142857143 0.5481857142857143 -1.2249999999999999 1.2249999999999999 -1.2249999999999999h4.655v-1.4699999999999998h-0.49c-0.5420642857142857 0 -0.98 -0.43793571428571426 -0.98 -0.98s0.43793571428571426 -0.98 0.98 -0.98h0.49V1.14c0 -0.5420607142857142 0.43793571428571426 -0.98 0.98 -0.98h0.49V1.14c0 -0.5420607142857142 0.43793571428571426 -0.98 0.98 -0.98z"
                     fill="#000000"
-                    strokeWidth="0.0417"
+                    strokeWidth="0.0357"
                   ></path>
                 </svg>
-              </h3>
+                <span>Challenge</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-              {isEditProfileOpen && (
-                <form onSubmit={saveProfile} className={styles.form}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Display Name</label>
-
-                    <input
-                      className={styles.input}
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Enter your display name"
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Bio
-                      <textarea
-                        className={styles.textarea}
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        rows={4}
-                        placeholder="Tell us something about yourself..."
-                      />
-                    </label>
-                  </div>
-
-                  <div className={styles.formActions}>
-                    <button
-                      type="submit"
-                      className={`${styles.primaryButton} ${styles.btn}`}
-                      disabled={loading}
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={fetchProfile}
-                      className={`${styles.secondaryButton} ${styles.btn}`}
-                      disabled={loading}
-                    >
-                      Discard Changes
-                    </button>
-                  </div>
-                </form>
-              )}
+      {/* Incoming challenge modal */}
+      {incomingChallenge && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+          <div className={styles.modalBox}>
+            <h3 className={styles.modalTitle}>
+              Challenge from {incomingChallenge.from?.username}
+            </h3>
+            <div className={styles.challengeInfo}>
+              <div>Time: {incomingChallenge.minutes} min</div>
+              <div>Color preference: {incomingChallenge.colorPreference}</div>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                className={`${styles.btn} ${styles.primary}`}
+                onClick={acceptIncomingChallenge}
+              >
+                Accept
+              </button>
+              <button className={styles.btn} onClick={declineIncomingChallenge}>
+                Decline
+              </button>
             </div>
           </div>
         </div>

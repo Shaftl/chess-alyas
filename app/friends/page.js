@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -14,6 +13,25 @@ const RAW_API = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
 ).replace(/\/$/, "");
 const API_PREFIX = RAW_API.endsWith("/api") ? RAW_API : `${RAW_API}/api`;
+
+const backendOrigin = RAW_API.replace(/\/api\/?$/, "");
+
+function resolveAvatarFrom(candidate) {
+  if (!candidate) return null;
+  if (typeof candidate === "string") {
+    if (/^https?:\/\//i.test(candidate)) return candidate;
+    return `${backendOrigin}${candidate}`;
+  }
+  const alt =
+    candidate.avatarUrlAbsolute ||
+    candidate.avatarUrl ||
+    candidate.fromAvatarUrl ||
+    candidate.fromAvatarUrlAbsolute ||
+    candidate.avatar;
+  if (!alt) return null;
+  if (/^https?:\/\//i.test(alt)) return alt;
+  return `${backendOrigin}${alt}`;
+}
 
 export default function FriendsPageWrapper() {
   return (
@@ -141,8 +159,21 @@ function FriendsPage() {
       const res = await axios.get(`${API_PREFIX}/friends`, {
         withCredentials: true,
       });
-      // backend now returns `online` where possible
-      setFriends(Array.isArray(res.data) ? res.data : []);
+      // normalize avatar fields client-side
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const normalized = arr.map((f) => {
+        const avatar =
+          f.avatarUrlAbsolute ||
+          f.avatarUrl ||
+          (f.user && (f.user.avatarUrlAbsolute || f.user.avatarUrl)) ||
+          null;
+        const avatarUrlAbsolute =
+          avatar && !/^https?:\/\//i.test(avatar)
+            ? `${backendOrigin}${avatar}`
+            : avatar;
+        return { ...f, avatarUrlAbsolute };
+      });
+      setFriends(normalized);
     } catch (err) {
       console.error("fetchFriends", err);
       setFriends([]);
@@ -153,9 +184,31 @@ function FriendsPage() {
     try {
       const res = await axios.get(
         `${API_PREFIX}/friends/requests?status=pending`,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+        }
       );
-      setRequests(Array.isArray(res.data) ? res.data : []);
+      const arr = Array.isArray(res.data) ? res.data : [];
+      // try to normalize "from" avatar fields if present on the request
+      const normalized = arr.map((req) => {
+        // check various possible fields
+        let fromAvatar =
+          req.fromAvatarUrlAbsolute ||
+          req.fromAvatarUrl ||
+          req.fromAvatar ||
+          req.from?.avatarUrlAbsolute ||
+          req.from?.avatarUrl ||
+          null;
+        let fromAvatarAbsolute = null;
+        if (fromAvatar) {
+          fromAvatarAbsolute = /^https?:\/\//i.test(fromAvatar)
+            ? fromAvatar
+            : `${backendOrigin}${fromAvatar}`;
+        }
+        // also attach unified field for template use
+        return { ...req, fromAvatarAbsolute };
+      });
+      setRequests(normalized);
     } catch (err) {
       console.error("fetchRequests", err);
       setRequests([]);
@@ -218,7 +271,9 @@ function FriendsPage() {
     try {
       const resp = await axios.delete(
         `${API_PREFIX}/friends/${encodeURIComponent(targetId)}`,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+        }
       );
       if (resp.data && resp.data.ok) {
         alert("Removed friend");
@@ -348,13 +403,50 @@ function FriendsPage() {
 
           {requests.map((req) => (
             <div key={req.reqId} className={styles.requestCard}>
-              <div className={styles.requestInfo}>
-                <div className={styles.requestName}>
-                  {req.fromDisplayName || req.fromUsername}
-                </div>
-                <div className={styles.requestHandle}>@{req.fromUsername}</div>
-                <div className={styles.requestTs}>
-                  Sent: {new Date(req.ts || Date.now()).toLocaleString()}
+              <div
+                className={styles.requestInfo}
+                style={{ display: "flex", gap: 12, alignItems: "center" }}
+              >
+                {req.fromAvatarAbsolute ? (
+                  <img
+                    src={req.fromAvatarAbsolute}
+                    alt={`${req.fromDisplayName || req.fromUsername} avatar`}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: "#eee",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {(req.fromDisplayName || req.fromUsername || "U")
+                      .charAt(0)
+                      .toUpperCase()}
+                  </div>
+                )}
+
+                <div>
+                  <div className={styles.requestName}>
+                    {req.fromDisplayName || req.fromUsername}
+                  </div>
+                  <div className={styles.requestHandle}>
+                    @{req.fromUsername}
+                  </div>
+                  <div className={styles.requestTs}>
+                    Sent: {new Date(req.ts || Date.now()).toLocaleString()}
+                  </div>
                 </div>
               </div>
 
@@ -468,9 +560,31 @@ function FriendsPage() {
       {incomingChallenge && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modalBox}>
-            <h3 className={styles.modalTitle}>
-              Challenge from {incomingChallenge.from?.username}
-            </h3>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              {resolveAvatarFrom(incomingChallenge.from) ? (
+                <img
+                  src={resolveAvatarFrom(incomingChallenge.from)}
+                  alt={`${incomingChallenge.from?.username} avatar`}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : null}
+              <h3 className={styles.modalTitle}>
+                Challenge from {incomingChallenge.from?.username}
+              </h3>
+            </div>
+
             <div className={styles.challengeInfo}>
               <div>Time: {incomingChallenge.minutes} min</div>
               <div>Color preference: {incomingChallenge.colorPreference}</div>
