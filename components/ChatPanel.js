@@ -1,7 +1,58 @@
+"use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import styles from "@/styles/ChatPanel.module.css";
 import { useSelector, useDispatch } from "react-redux";
 import { addMessage } from "@/store/slices/gameSlice";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+/* ---------- NEW: compute backend base (no trailing slash) ---------- */
+const BACKEND_BASE =
+  (process.env.NEXT_PUBLIC_BACKEND_BASE_URL &&
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL.replace(/\/$/, "")) ||
+  API.replace(/\/api\/?$/, "");
+
+function normalizeBackendUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return null;
+  const url = rawUrl.trim();
+
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const u = new URL(url);
+      if (
+        u.hostname === "localhost" ||
+        u.hostname === "127.0.0.1" ||
+        u.hostname.endsWith(".local")
+      ) {
+        return `${BACKEND_BASE}${u.pathname}${u.search}${u.hash}`;
+      }
+      return url;
+    } catch (e) {
+      // fall through
+    }
+  }
+
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${BACKEND_BASE}${path}`;
+}
+
+function avatarUrlFromUser(user) {
+  if (!user) return null;
+  if (user.avatarUrlAbsolute) {
+    const n = normalizeBackendUrl(user.avatarUrlAbsolute);
+    return n || user.avatarUrlAbsolute;
+  }
+  if (user.avatarUrl) {
+    const n = normalizeBackendUrl(user.avatarUrl);
+    return n || user.avatarUrl;
+  }
+  if (user.avatar) {
+    const n = normalizeBackendUrl(user.avatar);
+    return n || user.avatar;
+  }
+  return null;
+}
 
 export default function ChatPanel({ socketRef }) {
   const dispatch = useDispatch();
@@ -36,12 +87,6 @@ export default function ChatPanel({ socketRef }) {
 
   return (
     <div className={styles.chatPanel}>
-      {/* <div className={styles.chatHeader}>
-        <small className={styles.messageCount}>
-          {messages.length} messages
-        </small>
-      </div> */}
-
       <div ref={scrollRef} className={styles.messagesContainer}>
         {messages.length === 0 && (
           <div className={styles.emptyState}>No messages yet</div>
@@ -51,17 +96,13 @@ export default function ChatPanel({ socketRef }) {
           const isMe =
             auth?.user?.id && m.user?.id && auth.user.id === m.user.id;
           const name = m.user?.displayName || m.user?.username || "Guest";
-          const avatar = m.user?.avatarUrl || m.user?.avatarUrlAbsolute || null;
+          const avatar = avatarUrlFromUser(m.user);
 
           return (
             <div key={m.id} className={styles.messageRow}>
               <div className={styles.avatarWrapper}>
                 {avatar ? (
-                  <img
-                    src={`https://chess-backend-api.onrender.com/api${avatar}`}
-                    alt={name}
-                    className={styles.avatar}
-                  />
+                  <img src={avatar} alt={name} className={styles.avatar} />
                 ) : (
                   <span className={styles.avatarLetter}>
                     {(name || "G").charAt(0).toUpperCase()}

@@ -2,9 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { backendOrigin } from "@/lib/chessUtils";
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://chess-backend-api.onrender.com/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 function ensureAvatarAbsolute(user) {
   if (!user || typeof user !== "object") return user;

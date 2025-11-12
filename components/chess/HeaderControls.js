@@ -408,6 +408,26 @@ export default function HeaderControls({
     return true;
   }
 
+  // --- Avatar normalization helpers for friend list ---
+  function normalizeAvatarRaw(raw) {
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const base = backendOrigin().replace(/\/$/, "");
+    const path = raw.startsWith("/") ? raw : `/${raw}`;
+    return `${base}${path}`;
+  }
+
+  function avatarForFriend(f) {
+    if (!f) return null;
+    const candidate = f.avatarUrlAbsolute || f.avatarUrl || f.avatar || null;
+    if (!candidate)
+      return `${backendOrigin().replace(
+        /\/$/,
+        ""
+      )}/api/uploads/default-avatar.png`;
+    return normalizeAvatarRaw(candidate);
+  }
+
   return (
     <header className={styles.header}>
       <div className={styles.headerControls}>
@@ -502,12 +522,7 @@ export default function HeaderControls({
                           <div className={styles.friendInfo}>
                             <img
                               alt={f.username}
-                              src={
-                                f.avatarUrlAbsolute
-                                  ? `https://chess-backend-api.onrender.com/api${f.avatarUrlAbsolute}`
-                                  : `https://chess-backend-api.onrender.com/api${f.avatarUrl}` ||
-                                    `/api/uploads/default-avatar.png`
-                              }
+                              src={avatarForFriend(f)}
                               className={styles.friendAvatar}
                             />
                             <div className={styles.friendTitle}>

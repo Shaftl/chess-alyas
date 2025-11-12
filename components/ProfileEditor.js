@@ -4,13 +4,12 @@ import { format } from "date-fns";
 import styles from "./ProfileEditor.module.css";
 import Link from "next/link";
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://chess-backend-api.onrender.com/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function ProfileEditor() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null); // percent 0-100 (null when not uploading)
   const [bio, setBio] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [cups, setCups] = useState(0);
@@ -51,7 +50,6 @@ export default function ProfileEditor() {
     if (msg && msgRef.current) {
       // scroll message into view and focus it so the user sees it
       msgRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      // make the message focusable by adding tabIndex (we'll add that to the div)
       try {
         msgRef.current.focus();
       } catch (e) {
@@ -180,7 +178,7 @@ export default function ProfileEditor() {
       // NORMALIZE AVATAR FIELDS
       // Ensure each player.user and message.user has avatarUrlAbsolute (frontend-only)
       // -------------------------
-      const backendOrigin = API.replace(/\/api\/?$/, ""); // e.g. https://chess-backend-api.onrender.com
+      const backendOrigin = API.replace(/\/api\/?$/, ""); // e.g. http://localhost:4000
 
       const normalizedList = (Array.isArray(list) ? list : []).map((g) => {
         // normalize players
@@ -302,7 +300,8 @@ export default function ProfileEditor() {
   }
 
   // uploadAvatar now accepts either an Event (from a form submit) or a File (from handleFileChange)
-  async function uploadAvatar(eOrFile) {
+  // we use XMLHttpRequest to provide upload progress reporting (fetch has no upload progress)
+  function uploadAvatar(eOrFile) {
     // allow calling from a form submit or directly with a File
     if (eOrFile && typeof eOrFile.preventDefault === "function") {
       eOrFile.preventDefault();
@@ -322,59 +321,83 @@ export default function ProfileEditor() {
 
     setLoading(true);
     setMsg(null);
+    setUploadProgress(0);
 
-    let uploadSuccess = false;
-    // remember if we had a blob preview so we can revoke it after success
-    const hadPreviewBlob =
-      previewUrlRef.current &&
-      String(previewUrlRef.current).startsWith("blob:");
+    const form = new FormData();
+    form.append("avatar", fileToUse);
 
     try {
-      const form = new FormData();
-      form.append("avatar", fileToUse);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API}/auth/upload-avatar`);
+      xhr.withCredentials = true;
 
-      const res = await fetch(`${API}/auth/upload-avatar`, {
-        method: "POST",
-        credentials: "include",
-        body: form,
-      });
-
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setMsg({ type: "error", text: j.error || "Upload failed" });
-      } else {
-        let avatarUrl = null;
-        if (j.avatarUrlAbsolute && /^https?:\/\//i.test(j.avatarUrlAbsolute)) {
-          avatarUrl = j.avatarUrlAbsolute;
-        } else if (j.avatarUrl && /^https?:\/\//i.test(j.avatarUrl)) {
-          avatarUrl = j.avatarUrl;
-        } else if (j.avatarUrl) {
-          const backendOrigin =
-            process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-            API.replace(/\/api\/?$/, "");
-          avatarUrl = `${backendOrigin}${j.avatarUrl}`;
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          const pct = Math.round((ev.loaded / ev.total) * 100);
+          setUploadProgress(pct);
         }
-        // update profile everywhere
-        setProfile((p) => ({ ...(p || {}), avatarUrl }));
-        setMsg({ type: "success", text: "Avatar uploaded successfully" });
-        uploadSuccess = true;
-      }
+      };
+
+      xhr.onload = () => {
+        let j = {};
+        try {
+          j = JSON.parse(xhr.responseText || "{}");
+        } catch (err) {
+          // ignore parse error
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          let avatarUrl = null;
+          if (
+            j.avatarUrlAbsolute &&
+            /^https?:\/\//i.test(j.avatarUrlAbsolute)
+          ) {
+            avatarUrl = j.avatarUrlAbsolute;
+          } else if (j.avatarUrl && /^https?:\/\//i.test(j.avatarUrl)) {
+            avatarUrl = j.avatarUrl;
+          } else if (j.avatarUrl) {
+            const backendOrigin =
+              process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+              API.replace(/\/api\/?$/, "");
+            avatarUrl = `${backendOrigin}${j.avatarUrl}`;
+          }
+
+          // update profile everywhere
+          setProfile((p) => ({ ...(p || {}), avatarUrl }));
+          setMsg({ type: "success", text: "Avatar uploaded successfully" });
+
+          // if we had a blob preview (created with URL.createObjectURL), revoke it now
+          const hadPreviewBlob =
+            previewUrlRef.current &&
+            String(previewUrlRef.current).startsWith("blob:");
+          if (hadPreviewBlob && previewUrlRef.current) {
+            try {
+              URL.revokeObjectURL(previewUrlRef.current);
+            } catch (err) {
+              // ignore
+            }
+            previewUrlRef.current = null;
+          }
+        } else {
+          setMsg({ type: "error", text: j.error || "Upload failed" });
+        }
+
+        setLoading(false);
+        setUploadProgress(null);
+        setFile(null);
+      };
+
+      xhr.onerror = () => {
+        setMsg({ type: "error", text: "Upload error" });
+        setLoading(false);
+        setUploadProgress(null);
+      };
+
+      xhr.send(form);
     } catch (err) {
       setMsg({ type: "error", text: "Upload error" });
-    } finally {
-      // if upload succeeded and we had created a blob preview, revoke it
-      if (uploadSuccess && hadPreviewBlob && previewUrlRef.current) {
-        try {
-          URL.revokeObjectURL(previewUrlRef.current);
-        } catch (err) {
-          // ignore
-        }
-        previewUrlRef.current = null;
-      }
-
       setLoading(false);
-      // keep behavior similar to previous: clear selected file state
-      setFile(null);
+      setUploadProgress(null);
     }
   }
 
@@ -569,6 +592,21 @@ export default function ProfileEditor() {
                       .toUpperCase()}
                   </div>
                 )}
+
+                {/* spinner overlay while uploading */}
+                {uploadProgress !== null && (
+                  <div
+                    className={styles.avatarUploadingOverlay}
+                    aria-live="polite"
+                    aria-label="Uploading avatar"
+                  >
+                    <div className={styles.avatarUploadingText}>
+                      Uploading...
+                    </div>
+                    <div className={styles.spinner} role="status" aria-hidden />
+                  </div>
+                )}
+
                 <label htmlFor="avatar-upload" className={styles.fileLabel}>
                   <div className={styles.avatarOverlay}>
                     <svg
@@ -599,8 +637,11 @@ export default function ProfileEditor() {
                   className={styles.fileInput}
                   id="avatar-upload"
                   style={{ display: "none" }}
+                  disabled={loading}
                 />
               </div>
+
+              {/* previous textual progress UI intentionally removed in favor of spinner overlay */}
             </div>
 
             <div className={styles.profileInfo}>
@@ -702,8 +743,8 @@ export default function ProfileEditor() {
               </div>
             </div>
           </div>
-
           {/* Edit Form + Game History */}
+
           <div className={styles.formCard}>
             <div className={styles.gameHistory}>
               <h3>Game History</h3>
@@ -912,15 +953,14 @@ export default function ProfileEditor() {
               {isEditProfileOpen && (
                 <form onSubmit={saveProfile} className={styles.form}>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Display Name
-                      <input
-                        className={styles.input}
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Enter your display name"
-                      />
-                    </label>
+                    <label className={styles.label}>Display Name</label>
+
+                    <input
+                      className={styles.input}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Enter your display name"
+                    />
                   </div>
 
                   <div className={styles.formGroup}>

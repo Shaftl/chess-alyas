@@ -288,6 +288,10 @@
   margin-bottom: 1.8rem;
 }
 
+.label:last-child {
+  margin-top: 1.4rem;
+}
+
 .input,
 .textarea {
   width: 100%;
@@ -488,9 +492,9 @@
   font-size: 1.4rem;
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* background: rgba(255, 255, 255, 0.05); */
+  /* border-radius: 12px; */
+  /* border: 1px solid rgba(255, 255, 255, 0.08); */
 }
 
 .errorText {
@@ -782,5 +786,55 @@
 
   .gameContent {
     gap: 1rem;
+  }
+}
+
+/* New classes for avatar uploading spinner overlay */
+/* Add these to your existing ProfileEditor.module.css (only these new rules) */
+
+.avatarContainer {
+  position: relative; /* ensure overlay positions correctly; if your existing rule already sets it, this is harmless */
+}
+
+.avatarUploadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.507); /* subtle translucent white overlay */
+  border-radius: 8px; /* match avatar rounding; adjust if needed */
+  pointer-events: none; /* so user can still click label elements if needed */
+  z-index: 40;
+  top: 0;
+  text-align: center;
+}
+
+.avatarUploadingText {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0); /* keep simple */
+  margin-bottom: 0.6rem;
+  padding: 0;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.6);
+  animation: spin 0.9s linear infinite;
+  box-sizing: border-box;
+  display: inline-block;
+}
+
+/* keyframes */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }

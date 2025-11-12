@@ -136,9 +136,7 @@ export default function ChessBoard({
   const [joinChecking, setJoinChecking] = useState(false);
   const [joinResult, setJoinResult] = useState(null); // room info or error
 
-  const API =
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://chess-backend-api.onrender.com/api";
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
   useEffect(() => {
     try {

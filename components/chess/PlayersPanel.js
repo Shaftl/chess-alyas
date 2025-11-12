@@ -7,9 +7,7 @@ import { normalizeAvatarUrlFromAuthUser } from "@/lib/chessUtils";
 import BtnSpinner from "../BtnSpinner";
 import Link from "next/link";
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://chess-backend-api.onrender.com/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 /* ---------- NEW: compute backend base (no trailing slash) ---------- */
 const BACKEND_BASE =

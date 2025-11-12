@@ -13,6 +13,56 @@ import styles from "./AccountDropdown.module.css";
  * Usage: place <AccountDropdown /> in your header.
  */
 
+// compute backend base (no trailing slash)
+const BACKEND_BASE =
+  (process.env.NEXT_PUBLIC_BACKEND_BASE_URL &&
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL.replace(/\/$/, "")) ||
+  (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "");
+
+function normalizeBackendUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return null;
+  const url = rawUrl.trim();
+
+  // absolute URL -> if it's pointing to localhost rewrite to BACKEND_BASE; otherwise return as-is
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const u = new URL(url);
+      if (
+        u.hostname === "localhost" ||
+        u.hostname === "127.0.0.1" ||
+        u.hostname.endsWith(".local")
+      ) {
+        // rewrite to BACKEND_BASE keeping path/search/hash
+        return `${BACKEND_BASE}${u.pathname}${u.search}${u.hash}`;
+      }
+      return url;
+    } catch (e) {
+      // fall through
+    }
+  }
+
+  // relative path -> prefix BACKEND_BASE
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${BACKEND_BASE}${path}`;
+}
+
+function avatarUrlFromUser(user) {
+  if (!user) return null;
+  if (user.avatarUrlAbsolute) {
+    const n = normalizeBackendUrl(user.avatarUrlAbsolute);
+    return n || user.avatarUrlAbsolute;
+  }
+  if (user.avatarUrl) {
+    const n = normalizeBackendUrl(user.avatarUrl);
+    return n || user.avatarUrl;
+  }
+  if (user.avatar) {
+    const n = normalizeBackendUrl(user.avatar);
+    return n || user.avatar;
+  }
+  return null;
+}
+
 export default function AccountDropdown() {
   const auth = useSelector((s) => s.auth);
   const user = auth?.user || null;
@@ -55,8 +105,7 @@ export default function AccountDropdown() {
   }
 
   // avatar/initial rendering
-
-  const avatar = `${process.env.NEXT_PUBLIC_API_URL}${user?.avatarUrl}` || null;
+  const avatar = avatarUrlFromUser(user) || null;
 
   const initial = (user?.displayName || user?.username || "U")
     .charAt(0)
