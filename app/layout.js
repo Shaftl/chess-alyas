@@ -1,3 +1,4 @@
+// app/layout.js
 import "@/styles/globals.css";
 import ClientProvider from "../components/ClientProvider";
 import AppChrome from "@/components/AppChrome";
@@ -6,6 +7,7 @@ import InviteModal from "@/components/InviteModal";
 export const metadata = {
   title: "Chess Master Online",
   description: "Chess Master online with Redux + Socket.io",
+  // optionally add openGraph/twitter etc here later
 };
 
 export default function RootLayout({ children }) {
@@ -16,7 +18,7 @@ export default function RootLayout({ children }) {
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"
-          crossOrigin="true"
+          crossOrigin="anonymous"
         />
         <link
           href="https://fonts.googleapis.com/css2?family=Stack+Sans+Notch:wght@200..700&display=swap"
