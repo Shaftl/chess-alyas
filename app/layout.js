@@ -30,7 +30,6 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ClientProvider>
-          <ActiveRoomModal />
           {/* global challenge listener + modal (mounted in client chrome) */}
           <GlobalChallengeListener />
           <GlobalChallengeModal />

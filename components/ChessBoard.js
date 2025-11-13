@@ -870,6 +870,28 @@ export default function ChessBoard({
         try {
           if (moveSoundEnabled) soundManager.playStart();
         } catch (e) {}
+
+        // NEW: if server started a rematch in a NEW room, redirect client to that room and request sync.
+        try {
+          const newRoomId = payload.roomId || null;
+          // Only navigate if we actually received a new room id and we're not already on it.
+          if (
+            newRoomId &&
+            String(newRoomId).trim() &&
+            lastPushedRoomRef.current !== newRoomId
+          ) {
+            dispatch(setRoomId(newRoomId));
+            lastPushedRoomRef.current = newRoomId;
+            try {
+              router.push(`/play/${encodeURIComponent(newRoomId)}`);
+            } catch (e) {}
+            try {
+              socketRef.current?.emit("request-sync", { roomId: newRoomId });
+            } catch (e) {}
+          }
+        } catch (e) {
+          // non-fatal
+        }
       } else {
         setMyPendingRematch(true);
         setStatusMsg(payload.message || "Rematch requested");
@@ -1928,7 +1950,6 @@ export default function ChessBoard({
   return (
     <div className={styles.wrapper}>
       {/* Always mount ActiveRoomModal so it can listen for events */}
-      <ActiveRoomModal />
 
       <div className={styles.playContainer}>
         <div
