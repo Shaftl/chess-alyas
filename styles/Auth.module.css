@@ -231,3 +231,35 @@
   width: 2.6rem;
   border-radius: 0.4rem;
 }
+
+@media (max-width: 650px) {
+  .container {
+    transform: scale(0.9);
+  }
+
+  .register .input {
+    width: 100%;
+  }
+
+  .formS {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .register .formS .birthday .input {
+    width: 40rem !important;
+  }
+  .register .formS .username .input {
+    width: 40rem !important;
+  }
+}
+
+@media (max-width: 500px) {
+  .container {
+    transform: scale(0.8);
+  }
+}
