@@ -263,7 +263,7 @@
 .wrapper {
   width: 100%;
   max-height: calc(100vh - 8rem);
-  overflow: auto;
+  /* overflow: auto; */
   padding: 2.4rem;
 }
 
@@ -659,7 +659,7 @@
     /* background: #131c24e2; */
     /* width: 0; */
     min-width: 3.6rem;
-    height: 100vh !important;
+    height: 100% !important;
     overflow: hidden;
   }
 
@@ -678,6 +678,10 @@
     position: relative;
     padding-left: 5rem;
     /* gap: 10rem; */
+  }
+
+  .fullScreenBtn {
+    display: none;
   }
 }
 
@@ -742,6 +746,11 @@
     /* slightly reduced from 640 -> 600 for a modest, professional shrink */
     width: min(400px, 72vh);
     height: min(400px, 72vh);
+  }
+
+  .wrapper {
+    padding: 1rem !important;
+    padding-top: 1rem !important;
   }
 }
 @media (max-width: 400px) {

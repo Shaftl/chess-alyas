@@ -451,11 +451,6 @@
 
 /* Responsive */
 @media (max-width: 480px) {
-  .container {
-    margin: 1rem;
-    border-radius: 24px;
-  }
-
   .content {
     padding: 2rem;
   }

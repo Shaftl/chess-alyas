@@ -421,8 +421,8 @@
 
   .dropdown {
     width: 380px;
-    right: -50%;
-    transform: translateX(50%);
+    /* right: -50%; */
+    /* transform: translateX(50%); */
     padding: 2rem;
   }
 
@@ -462,8 +462,8 @@
 @media (max-width: 480px) {
   .dropdown {
     width: 320px;
-    right: -100%;
-    transform: translateX(50%);
+    /* right: -100%; */
+    /* transform: translateX(50%); */
     padding: 1.5rem;
   }
 
