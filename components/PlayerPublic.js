@@ -712,10 +712,12 @@ export default function PlayerPublic({ id }) {
                             className={styles.gameCard}
                           >
                             <div className={styles.gameHeader}>
-                              <div className={styles.gameMoves}>
-                                {movesCount} moves
+                              <div className={styles.gameHeaderMoves}>
+                                <div className={styles.gameMoves}>
+                                  {movesCount} moves
+                                </div>
+                                <div className={styles.gameDate}>{dateStr}</div>
                               </div>
-                              <div className={styles.gameDate}>{dateStr}</div>
                             </div>
                             <div className={styles.gameContent}>
                               <div className={styles.opponentInfo}>
@@ -739,7 +741,7 @@ export default function PlayerPublic({ id }) {
                                   {opponentName}
                                 </div>
                               </div>
-                              <div className={styles.gameMeta}>
+                              {/* <div className={styles.gameMeta}>
                                 <div className={styles.metaLabel}>Color</div>
                                 <div
                                   className={`${styles.colorBadge} ${
@@ -748,7 +750,7 @@ export default function PlayerPublic({ id }) {
                                 >
                                   {yourColor}
                                 </div>
-                              </div>
+                              </div> */}
                               <div className={styles.roomLink}>
                                 <div className={styles.roomLabel}>Game</div>
                                 {linkHref ? (

@@ -7,6 +7,74 @@
   justify-content: space-between;
   padding: 0 2rem;
   border-bottom: 1px solid #00000052;
+  position: relative;
+  z-index: 1000;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.menuButton {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  width: 3rem;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  transition: background-color 0.3s ease;
+}
+
+.menuButton:hover {
+  background: #0000001a;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 2rem;
+  height: 1.5rem;
+  position: relative;
+}
+
+.hamburgerLine {
+  width: 100%;
+  height: 0.2rem;
+  background: #fff;
+  border-radius: 0.1rem;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.hamburgerLine:nth-child(1) {
+  transform: translateY(0);
+}
+
+.hamburgerLine:nth-child(2) {
+  opacity: 1;
+}
+
+.hamburgerLine:nth-child(3) {
+  transform: translateY(0);
+}
+
+.hamburgerLineActive:nth-child(1) {
+  transform: translateY(0.65rem) rotate(45deg);
+}
+
+.hamburgerLineActive:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburgerLineActive:nth-child(3) {
+  transform: translateY(-0.65rem) rotate(-45deg);
 }
 
 .logoContainer {
@@ -44,4 +112,145 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+  .header {
+    height: 6rem;
+    padding: 0 1.5rem;
+  }
+
+  .menuButton {
+    display: flex;
+  }
+
+  .logoContainer {
+    gap: 0.8rem;
+  }
+
+  .logoIcon {
+    width: 2.8rem;
+  }
+
+  .logoText {
+    font-size: 1.6rem;
+  }
+
+  .accountSection {
+    gap: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .headerLeft {
+    gap: 1.5rem;
+  }
+
+  .menuButton {
+    width: 2.8rem;
+    height: 2.8rem;
+  }
+
+  .hamburger {
+    width: 1.8rem;
+    height: 1.3rem;
+  }
+
+  .logoContainer {
+    gap: 0.6rem;
+  }
+
+  .logoIcon {
+    width: 2.4rem;
+  }
+
+  .logoText {
+    font-size: 1.4rem;
+  }
+
+  .accountSection {
+    gap: 0.6rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .header {
+    padding: 0 0.8rem;
+  }
+
+  .headerLeft {
+    gap: 1rem;
+  }
+
+  .menuButton {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .hamburger {
+    width: 1.6rem;
+    height: 1.2rem;
+  }
+
+  .logoContainer {
+    gap: 0.5rem;
+  }
+
+  .logoIcon {
+    width: 2.2rem;
+  }
+
+  .logoText {
+    font-size: 1.2rem;
+  }
+
+  .accountSection {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 300px) {
+  .header {
+    padding: 0 0.5rem;
+  }
+
+  .headerLeft {
+    gap: 0.8rem;
+  }
+
+  .menuButton {
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0.3rem;
+  }
+
+  .hamburger {
+    width: 1.4rem;
+    height: 1rem;
+  }
+
+  .hamburgerLine {
+    height: 0.15rem;
+  }
+
+  .logoContainer {
+    gap: 0.4rem;
+  }
+
+  .logoIcon {
+    width: 2rem;
+  }
+
+  .logoText {
+    font-size: 1.1rem;
+  }
+
+  .accountSection {
+    gap: 0.4rem;
+  }
 }

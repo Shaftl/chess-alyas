@@ -15,10 +15,12 @@ import PageSpinner from "@/components/PageSpinner";
  * Adds:
  * - Suspense fallback (PageSpinner) for server/component loading
  * - Small client-side navigation spinner overlay when pathname changes
+ * - Mobile menu state management for SideNav
  */
 
 export default function AppChrome({ children }) {
   const pathname = usePathname() || "/";
+  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
 
   // hide chrome on root (/) and auth routes (/auth/*)
   const hideChrome =
@@ -28,6 +30,11 @@ export default function AppChrome({ children }) {
   const prev = useRef(pathname);
   const [isNavigating, setIsNavigating] = useState(false);
   const navTimerRef = useRef(null);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsSideNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     // skip on initial mount
@@ -63,6 +70,10 @@ export default function AppChrome({ children }) {
     };
   }, [pathname]);
 
+  const toggleSideNav = () => {
+    setIsSideNavOpen(!isSideNavOpen);
+  };
+
   // If chrome is hidden (root/auth), still wrap children in Suspense so
   // server-side loads show the spinner fallback.
   if (hideChrome) {
@@ -77,10 +88,10 @@ export default function AppChrome({ children }) {
   // Default: render header + sidenav + content with Suspense fallback
   return (
     <div className="gridRootBox">
-      <Header />
+      <Header onMenuToggle={toggleSideNav} isSideNavOpen={isSideNavOpen} />
       <div className="gridRoot">
-        <SideNav />
-        <div>
+        <SideNav isOpen={isSideNavOpen} />
+        <div className="gridRootContent">
           <Suspense fallback={<PageSpinner />}>{children}</Suspense>
         </div>
       </div>

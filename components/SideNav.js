@@ -1,4 +1,3 @@
-// frontend/components/SideNav.jsx
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
@@ -7,7 +6,7 @@ import styles from "./SideNav.module.css";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-function SideNav() {
+function SideNav({ isOpen }) {
   const router = useRouter();
   const mounted = useRef(true);
   const [friendNotifs, setFriendNotifs] = useState([]);
@@ -114,10 +113,8 @@ function SideNav() {
 
   const unreadCount = friendNotifs.length;
 
-  // Inline badge styles so it works even if you don't yet have CSS for it.
-
   return (
-    <div className={styles.sideNav}>
+    <div className={`${styles.sideNav} ${isOpen ? styles.sideNavOpen : ""}`}>
       <nav className={styles.nav}>
         <ul className={styles.navLinks}>
           <li className={styles.navItem}>

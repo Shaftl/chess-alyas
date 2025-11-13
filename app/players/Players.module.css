@@ -540,6 +540,7 @@
 @media (max-width: 768px) {
   .container {
     padding: 2rem 1.5rem;
+    height: calc(100vh - 6rem);
   }
 
   .header {
@@ -588,6 +589,11 @@
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 1.5rem 1rem;
+    height: calc(100vh - 5rem);
+  }
+
   .title {
     font-size: 2.8rem;
   }
@@ -600,6 +606,8 @@
 
   .btn {
     text-align: center;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.3rem;
   }
 
   .playerHeader {
@@ -614,5 +622,130 @@
 
   .onlineStatus {
     justify-content: flex-start;
+  }
+
+  .currentUserCard {
+    padding: 1.5rem;
+  }
+
+  .currentUserName {
+    font-size: 1.6rem;
+  }
+
+  .sectionHeader {
+    font-size: 2rem;
+  }
+
+  .modalBox {
+    padding: 2rem;
+    margin: 0.5rem;
+  }
+
+  .modalTitle {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    padding: 1rem 0.8rem;
+    height: calc(100vh - 4.5rem);
+  }
+
+  .title {
+    font-size: 2.4rem;
+  }
+
+  .btn {
+    padding: 0.7rem 1.2rem;
+    font-size: 1.2rem;
+  }
+
+  .currentUserCard {
+    padding: 1.2rem;
+  }
+
+  .currentUserName {
+    font-size: 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .playerCard {
+    padding: 1.5rem;
+  }
+
+  .playerName {
+    font-size: 1.5rem;
+  }
+
+  .playerActions .btn {
+    min-width: 60px;
+    padding: 0.6rem 1rem;
+    font-size: 1.2rem;
+  }
+
+  .modalBox {
+    padding: 1.5rem;
+  }
+
+  .modalTitle {
+    font-size: 1.8rem;
+  }
+
+  .modalActions .btn {
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 300px) {
+  .container {
+    padding: 0.8rem 0.5rem;
+    height: calc(100vh - 4rem);
+  }
+
+  .title {
+    font-size: 2.2rem;
+  }
+
+  .sectionHeader {
+    font-size: 1.8rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 1.1rem;
+  }
+
+  .currentUserCard {
+    padding: 1rem;
+  }
+
+  .playerCard {
+    padding: 1.2rem;
+  }
+
+  .playerActions {
+    flex-direction: column;
+  }
+
+  .playerActions .btn {
+    width: 100%;
+  }
+
+  .modalBox {
+    padding: 1.2rem;
+  }
+
+  .modalTitle {
+    font-size: 1.6rem;
+  }
+
+  .input,
+  .select {
+    padding: 1rem;
+    font-size: 1.3rem;
   }
 }

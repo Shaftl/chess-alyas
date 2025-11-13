@@ -1,27 +1,53 @@
 // File: frontend/components/Header.jsx
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import styles from "./Header.module.css";
 import AccountDropdown from "./AccountDropdown";
 import Notifications from "./Notifications";
 
-export default function Header() {
+export default function Header({ onMenuToggle, isSideNavOpen }) {
   return (
     <header className={styles.header}>
-      <Link href="/" className={styles.logoLink}>
-        <div className={styles.logoContainer}>
-          <div className={styles.logoIcon}>
-            <img src="/logo.png" alt="logo" />
+      <div className={styles.headerLeft}>
+        <button
+          className={styles.menuButton}
+          onClick={onMenuToggle}
+          aria-label="Toggle menu"
+          aria-expanded={isSideNavOpen}
+        >
+          <span className={styles.hamburger}>
+            <span
+              className={`${styles.hamburgerLine} ${
+                isSideNavOpen ? styles.hamburgerLineActive : ""
+              }`}
+            ></span>
+            <span
+              className={`${styles.hamburgerLine} ${
+                isSideNavOpen ? styles.hamburgerLineActive : ""
+              }`}
+            ></span>
+            <span
+              className={`${styles.hamburgerLine} ${
+                isSideNavOpen ? styles.hamburgerLineActive : ""
+              }`}
+            ></span>
+          </span>
+        </button>
+
+        <Link href="/" className={styles.logoLink}>
+          <div className={styles.logoContainer}>
+            <div className={styles.logoIcon}>
+              <img src="/logo.png" alt="logo" />
+            </div>
+            <div className={styles.logoText}>
+              Chess<span>Master</span>
+            </div>
           </div>
-          <div className={styles.logoText}>
-            Chess<span>Master</span>
-          </div>
-        </div>
-      </Link>
+        </Link>
+      </div>
 
       <div className={styles.accountSection}>
-        {/* Notifications placed before account dropdown */}
         <Notifications />
         <AccountDropdown />
       </div>

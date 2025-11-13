@@ -846,9 +846,11 @@ export default function ProfileEditor() {
                             className={styles.gameCard}
                           >
                             <div className={styles.gameHeader}>
-                              <div className={styles.gameDate}>{dateStr}</div>
-                              <div className={styles.gameMoves}>
-                                {movesCount} moves
+                              <div className={styles.gameHeaderMoves}>
+                                <div className={styles.gameDate}>{dateStr}</div>
+                                <div className={styles.gameMoves}>
+                                  {movesCount} moves
+                                </div>
                               </div>
                             </div>
                             <div className={styles.gameContent}>
@@ -873,7 +875,9 @@ export default function ProfileEditor() {
                                   {opponentName}
                                 </div>
                               </div>
-                              <div className={styles.gameMeta}>
+                              {/* <div
+                                className={`${styles.gameMeta} ${styles.gameMetaColor}`}
+                              >
                                 <div className={styles.metaLabel}>
                                   Your Color
                                 </div>
@@ -884,7 +888,7 @@ export default function ProfileEditor() {
                                 >
                                   {yourColor}
                                 </div>
-                              </div>
+                              </div> */}
                               <div className={styles.roomLink}>
                                 <div className={styles.roomLabel}>Game</div>
                                 {linkHref ? (
