@@ -39,11 +39,9 @@ body {
 .gridRoot {
   display: grid;
   grid-template-columns: auto 1fr;
-  transition: all 0.3s !important;
 }
 
 .gridRootContent {
-  transition: all 0.3s !important;
 }
 
 ::-webkit-scrollbar {

@@ -57,3 +57,9 @@
   position: relative;
   display: none !important;
 }
+
+@media (max-width: 1000px) {
+  .rightPanel {
+    width: 100%;
+  }
+}

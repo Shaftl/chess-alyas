@@ -24,6 +24,7 @@ export default function Sidebar({
   tickSoundEnabled,
   setMoveSoundEnabled,
   setTickSoundEnabled,
+  isSideBarResOpen,
 
   moveHistory,
   analysisIndex,
@@ -33,7 +34,11 @@ export default function Sidebar({
   getPieceImageUrl,
 }) {
   return (
-    <aside className={styles.sidebar}>
+    <aside
+      className={`${styles.sidebar} ${
+        isSideBarResOpen ? styles.sidebarOpen : ""
+      }`}
+    >
       <div className={styles.sidebarSection}>
         <div className={styles.gameStatus}>
           <div className={styles.sidebarTitle}>Game Status</div>

@@ -125,12 +125,14 @@
     /* transition: transform 0.3s esase; */
     backdrop-filter: blur(10px);
     opacity: 0;
+    visibility: hidden;
   }
 
   .sideNavOpen {
     width: 6rem !important;
     opacity: 1;
     transform: translateX(0);
+    visibility: visible;
   }
 
   .nav {

@@ -1,7 +1,6 @@
 /* VoicePanel.module.css - Premium Modern Design */
 .container {
   width: 100%;
-  max-width: 380px;
 
   backdrop-filter: blur(40px);
   padding: 0;

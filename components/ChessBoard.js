@@ -64,6 +64,7 @@ export default function ChessBoard({
   const socketRef = useRef(null);
   const [, setTick] = useState(0);
   const lastIndexRef = useRef(-1);
+  const [isSideBarResOpen, setSideBarResOpen] = useState(false);
 
   const attemptedSeatRef = useRef(false); // guard to avoid auto-seat when spectator
   const prevRoomRef = useRef(null);
@@ -1958,27 +1959,77 @@ export default function ChessBoard({
           } ${isFullscreen ? styles.fullscreenActive || "" : ""}`}
         >
           {!effectiveHideSidebar && (
-            <Sidebar
-              gameState={gameState}
-              statusMsg={statusMsg}
-              gameOverState={gameOverState}
-              offerDraw={offerDraw}
-              resign={resign}
-              copyPGNToClipboard={copyPGNToClipboard}
-              leaveRoom={leaveRoom}
-              sendPlayAgain={sendPlayAgain}
-              myPendingRematch={myPendingRematch}
-              moveSoundEnabled={moveSoundEnabled}
-              tickSoundEnabled={tickSoundEnabled}
-              setMoveSoundEnabled={setMoveSoundEnabled}
-              setTickSoundEnabled={setTickSoundEnabled}
-              moveHistory={moveHistory}
-              analysisIndex={analysisIndex}
-              jumpToMove={jumpToMove}
-              startReplay={startReplay}
-              stopReplay={stopReplay}
-              getPieceImageUrl={getPieceImageUrl}
-            />
+            <div className={styles.sidebarRes}>
+              <div
+                onClick={() => setSideBarResOpen(!isSideBarResOpen)}
+                className={styles.menuIconBtn}
+              >
+                {!isSideBarResOpen ? (
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    id="Sidebar-Minimalistic--Streamline-Solar"
+                    height="16"
+                    width="16"
+                  >
+                    <desc>
+                      Sidebar Minimalistic Streamline Icon:
+                      https://streamlinehq.com
+                    </desc>
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M2.1143799999999997 2.7810466666666667C1.3333333333333333 3.5620999999999996 1.3333333333333333 4.8191733333333335 1.3333333333333333 7.333333333333333v1.3333333333333333c0 2.514133333333333 0 3.7712666666666665 0.7810466666666667 4.552266666666666C2.895433333333333 14 4.152506666666667 14 6.666666666666666 14h2.6666666666666665l0.16666666666666666 0 0 -12c-0.054933333333333334 -0.00000666666666666667 -0.11046666666666666 0 -0.16666666666666666 0h-2.6666666666666665C4.152506666666667 2 2.895433333333333 2 2.1143799999999997 2.7810466666666667ZM10.5 2.0037266666666667l0 11.99254c1.7572666666666665 -0.0184 2.7360666666666664 -0.1277333333333333 3.3856 -0.7773333333333332C14.666666666666666 12.437933333333334 14.666666666666666 11.1808 14.666666666666666 8.666666666666666v-1.3333333333333333c0 -2.51416 0 -3.7712333333333334 -0.7810666666666666 -4.552286666666666 -0.6495333333333333 -0.6495533333333333 -1.6283333333333332 -0.7589066666666666 -3.3856 -0.77732Z"
+                      fill="#000000"
+                      strokeWidth="0.6667"
+                    ></path>
+                  </svg>
+                ) : (
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    id="Close-Circle--Streamline-Solar"
+                    height="16"
+                    width="16"
+                  >
+                    <desc>
+                      Close Circle Streamline Icon: https://streamlinehq.com
+                    </desc>
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M14.666666666666666 8c0 3.6818666666666666 -2.9848 6.666666666666666 -6.666666666666666 6.666666666666666 -3.6818999999999997 0 -6.666666666666666 -2.9848 -6.666666666666666 -6.666666666666666C1.3333333333333333 4.318099999999999 4.318099999999999 1.3333333333333333 8 1.3333333333333333c3.6818666666666666 0 6.666666666666666 2.9847666666666663 6.666666666666666 6.666666666666666ZM5.979753333333333 5.9797666666666665c0.19526 -0.19526 0.51184 -0.19526 0.7071133333333333 0L8 7.292866666666666l1.3130666666666666 -1.3130866666666665c0.19526666666666664 -0.19526 0.5118666666666667 -0.19526 0.7071333333333333 0 0.19526666666666664 0.19526 0.19526666666666664 0.5118466666666666 0 0.7070866666666666L8.707066666666666 8l1.3131333333333333 1.3130666666666666c0.19526666666666664 0.19526666666666664 0.19526666666666664 0.5118666666666667 0 0.7071333333333333 -0.19526666666666664 0.19526666666666664 -0.5118666666666667 0.19526666666666664 -0.7071333333333333 0L8 8.707133333333333l-1.3131333333333333 1.3130666666666666c-0.1952533333333333 0.19526666666666664 -0.51184 0.19526666666666664 -0.7071000000000001 0 -0.19526 -0.19526666666666664 -0.19526 -0.5118666666666667 0 -0.7070666666666666L7.292866666666666 8l-1.3131133333333334 -1.3131333333333333c-0.19526666666666664 -0.1952533333333333 -0.19526666666666664 -0.51184 0 -0.7071000000000001Z"
+                      fill="#000000"
+                      strokeWidth="0.6667"
+                    ></path>
+                  </svg>
+                )}
+              </div>
+              <Sidebar
+                gameState={gameState}
+                statusMsg={statusMsg}
+                gameOverState={gameOverState}
+                offerDraw={offerDraw}
+                resign={resign}
+                copyPGNToClipboard={copyPGNToClipboard}
+                leaveRoom={leaveRoom}
+                sendPlayAgain={sendPlayAgain}
+                myPendingRematch={myPendingRematch}
+                moveSoundEnabled={moveSoundEnabled}
+                tickSoundEnabled={tickSoundEnabled}
+                setMoveSoundEnabled={setMoveSoundEnabled}
+                setTickSoundEnabled={setTickSoundEnabled}
+                moveHistory={moveHistory}
+                analysisIndex={analysisIndex}
+                jumpToMove={jumpToMove}
+                startReplay={startReplay}
+                stopReplay={stopReplay}
+                getPieceImageUrl={getPieceImageUrl}
+                isSideBarResOpen={isSideBarResOpen}
+              />
+            </div>
           )}
 
           <div
@@ -2090,11 +2141,11 @@ export default function ChessBoard({
           myUserId={auth?.user?.id}
         />
 
-        {myPendingDrawOffer && !drawOffer && (
+        {/* {myPendingDrawOffer && !drawOffer && (
           <div className={`${styles.drawBadge} ${styles.drawBadgeFixed}`}>
             Draw offered — waiting for opponent
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

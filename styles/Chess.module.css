@@ -46,21 +46,6 @@
   opacity: 1;
 }
 
-/* ---------- REPLACE: responsive sizing (keep proportions, slightly smaller) ---------- */
-@media (max-width: 768px) {
-  .boardContainer {
-    width: min(460px, 78vw);
-    height: min(460px, 78vw);
-  }
-}
-
-@media (max-width: 480px) {
-  .boardContainer {
-    width: min(340px, 94vw);
-    height: min(340px, 94vw);
-  }
-}
-
 /* Board disabled state when game over */
 .boardOver {
   pointer-events: none;
@@ -274,26 +259,11 @@
   }
 }
 
-/* Responsive adjustments (only for board sizing) */
-@media (max-width: 768px) {
-  .boardContainer {
-    width: min(400px, 90vw);
-    height: min(400px, 90vw);
-  }
-}
-
-@media (max-width: 480px) {
-  .boardContainer {
-    width: min(360px, 95vw);
-    height: min(360px, 95vw);
-  }
-}
-
 /* all css */
 .wrapper {
   width: 100%;
   max-height: calc(100vh - 8rem);
-  overflow: hidden;
+  overflow: auto;
   padding: 2.4rem;
 }
 
@@ -318,16 +288,17 @@
 
 .boardBox {
   height: calc(100vh - 10.4rem);
-  overflow: auto;
+  /* overflow: auto; */
 }
 
 .mainContent {
   /* height: calc(100vh - 10.4rem); */
-  overflow: auto;
+  /* overflow: auto; */
   display: grid;
   position: relative;
   grid-template-columns: auto auto 1fr 1fr;
   align-items: center;
+  /* justify-content: center; */
 }
 /* Promotion Modal - Modern Clean Design */
 .promotionModal {
@@ -560,14 +531,6 @@
 /* ---------- BOARD: prefer a height-driven size so board resists shrinking on zoom-out ---------- */
 
 /* tweak these if your left/right column widths differ */
-:root {
-  --left-sidebar: 400px; /* width of left column (sidebar area) */
-  --right-panel: 360px; /* width of right chat column */
-  --h-padding: 64px; /* total horizontal gutters/padding between columns */
-  --board-min: 420px; /* absolute minimum board size */
-  --board-max: 1200px; /* absolute maximum board size */
-  --board-prefer-vh: 60vh; /* prefer this fraction of viewport height */
-}
 
 /*
  Strategy:
@@ -577,40 +540,6 @@
  This makes the board prefer a tall (vh) size and refuse to become smaller than that,
  while still fitting to the center column when needed.
 */
-
-.boardContainer {
-  /* compute the center available width (viewport minus left + right + padding) */
-  --available-center-width: calc(
-    100vw - var(--left-sidebar) - var(--right-panel) - var(--h-padding)
-  );
-  --available-center-height: calc(
-    100vh - 14rem
-  ); /* adjust if your header/footer height differs */
-
-  width: clamp(
-    var(--board-min),
-    max(
-      var(--board-prefer-vh),
-      min(var(--available-center-width), var(--available-center-height))
-    ),
-    var(--board-max)
-  );
-
-  /* keep perfect square */
-  aspect-ratio: 1 / 1;
-  height: auto; /* derived from width via aspect-ratio */
-
-  /* safety caps so it never overflows */
-  max-width: calc(100vw - var(--left-sidebar) - var(--h-padding));
-  max-height: calc(100vh - 8rem);
-
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(8, 1fr);
-  position: relative;
-  overflow: hidden;
-  pointer-events: auto;
-}
 
 /* new */
 /* ---------- BOARD TEXTURE (Photoshop Multiply look) ---------- */
@@ -707,3 +636,125 @@
   z-index: 2;
 }
 */
+
+.sidebarRes svg path {
+  fill: #d3d3d3;
+}
+
+.menuIconBtn {
+  display: none;
+}
+
+.sidebarRes svg {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+
+@media (max-width: 1200px) {
+  .sidebarRes {
+    /* display: none; */
+    position: absolute;
+    top: 0;
+    z-index: 100;
+    /* background: #131c24e2; */
+    /* width: 0; */
+    min-width: 3.6rem;
+    height: 100vh !important;
+    overflow: hidden;
+  }
+
+  .menuIconBtn {
+    position: absolute;
+    right: 1rem;
+    z-index: 101;
+    cursor: pointer;
+    display: block;
+  }
+
+  .mainLayout {
+    grid-template-columns: 1fr auto !important;
+    /* align-items: center; */
+    /* gap: 10rem; */
+    position: relative;
+    padding-left: 5rem;
+    /* gap: 10rem; */
+  }
+}
+
+@media (max-width: 1000px) {
+  .mainLayout {
+    grid-template-columns: 1fr !important;
+    /* align-items: center; */
+    /* gap: 10rem; */
+    position: relative;
+    /* gap: 10rem; */
+  }
+
+  .mainContent {
+    height: auto;
+    display: flex;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+  }
+
+  /* all css */
+  .wrapper {
+    width: 100%;
+    max-height: calc(100vh - 6rem);
+    overflow: auto;
+    padding: 2.4rem;
+  }
+
+  .boardBox {
+    height: 100%;
+    /* overflow: auto; */
+  }
+}
+
+@media (max-width: 650px) {
+  .wrapper {
+    padding: 1rem !important;
+    padding-top: 1rem !important;
+  }
+  .mainContent {
+    display: grid;
+    grid-template-columns: auto !important;
+    gap: 1rem;
+  }
+
+  .fullScreenBtn {
+    position: absolute;
+    font-size: 1.4rem;
+    right: 0;
+    width: 3rem;
+    height: 3rem;
+    margin-left: auto;
+  }
+  .mainLayout {
+    padding-left: 0rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .boardContainer {
+    /* slightly reduced from 640 -> 600 for a modest, professional shrink */
+    width: min(400px, 72vh);
+    height: min(400px, 72vh);
+  }
+}
+@media (max-width: 400px) {
+  .boardContainer {
+    /* slightly reduced from 640 -> 600 for a modest, professional shrink */
+    width: min(300px, 72vh);
+    height: min(300px, 72vh);
+  }
+}
+@media (max-width: 350px) {
+  .boardContainer {
+    /* slightly reduced from 640 -> 600 for a modest, professional shrink */
+    width: min(260px, 72vh);
+    height: min(260px, 72vh);
+  }
+}

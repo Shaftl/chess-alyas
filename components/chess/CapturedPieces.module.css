@@ -73,22 +73,14 @@
   font-size: 13px;
 }
 
-/* responsive */
-@media (max-width: 520px) {
+@media (max-width: 1000px) {
   .rowLabel {
-    min-width: 90px;
-    font-size: 12px;
+    display: none;
   }
-  .capturedItem {
-    width: 26px;
-    height: 26px;
-  }
-  .capturedImg {
-    width: 18px;
-    height: 18px;
-  }
-  .rowMaterial {
-    min-width: 40px;
-    font-size: 12px;
+
+  .rowContent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }

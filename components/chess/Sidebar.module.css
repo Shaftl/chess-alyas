@@ -2,6 +2,7 @@
 .sidebar {
   width: 26rem;
   background: #0000003a;
+  transition: all 0.3s;
 }
 
 .sidebarSection {
@@ -52,4 +53,21 @@
   font-weight: 400;
   color: #fff;
   text-align: right;
+}
+
+@media (max-width: 1200px) {
+  .sidebar {
+    width: 0;
+    opacity: 0;
+    visibility: hidden;
+    backdrop-filter: blur(10px);
+
+    background: #151823ea;
+  }
+
+  .sidebarOpen {
+    width: 26rem;
+    opacity: 1;
+    visibility: visible;
+  }
 }
