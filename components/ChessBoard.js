@@ -482,7 +482,7 @@ export default function ChessBoard({
       );
     });
 
-    // room-update: dispatch joinRoomSuccess and UI updates
+    // replace original s.on("room-update", (r) => { ... })
     s.on("room-update", (r) => {
       const priorPending = prevPendingRef.current;
 
@@ -594,7 +594,6 @@ export default function ChessBoard({
         const prevCount = prevPlayersCountRef.current || 0;
         const newCount = colored.length || 0;
         if (newCount >= 2 && prevCount < 2 && !r.finished) {
-          // play game start sound (respect moveSoundEnabled)
           try {
             if (moveSoundEnabled) soundManager.playStart();
           } catch (e) {}
@@ -603,7 +602,6 @@ export default function ChessBoard({
       } catch (e) {}
 
       if (r.finished) {
-        // game finished — keep finished message
         setStatusMsg(r.finished.message || "Game finished");
       } else if (colored.length < 2) {
         setStatusMsg("Waiting for second player...");
@@ -616,11 +614,9 @@ export default function ChessBoard({
         try {
           const rawPlayers = r.players || [];
           const needFetchIds = rawPlayers
-            // consider explicit user id (p.user.id) OR top-level p.id from rooms endpoint
             .map((p) => p?.user?.id || p?.user?._id || p?.id)
             .filter(Boolean)
             .filter((id) => {
-              // find the player record that referred to this id (either nested user or top-level)
               const pl = rawPlayers.find(
                 (x) =>
                   (x.user && (x.user.id === id || x.user._id === id)) ||
@@ -628,8 +624,6 @@ export default function ChessBoard({
               );
               if (!pl) return false;
               const u = pl.user || {};
-              // If essential profile fields are missing OR cups is missing (undefined/null), fetch.
-              // Note: allow cups === 0 (a valid value), only fetch when cups is undefined or null.
               const missingProfile =
                 !u.username || !u.displayName || !u.avatarUrl;
               const missingCups =
@@ -640,7 +634,6 @@ export default function ChessBoard({
           if (!needFetchIds.length) return;
 
           const uniqueIds = [...new Set(needFetchIds)];
-          // call /api/players/:id (server exposes players routes, not /api/users)
           const base = API.replace(/\/api\/?$/, "");
           const fetches = uniqueIds.map((id) =>
             fetch(`${base}/api/players/${encodeURIComponent(id)}`, {
@@ -667,7 +660,6 @@ export default function ChessBoard({
           });
 
           const enriched = rawPlayers.map((pl) => {
-            // support both nested user and top-level id
             const uid =
               pl?.user?.id ||
               pl?.user?._id ||
@@ -682,17 +674,25 @@ export default function ChessBoard({
           // update redux + local state with enriched players
           dispatch(joinRoomSuccess({ ...r, players: enriched }));
           setPlayers(enriched);
-        } catch (e) {
-          // ignore enrichment errors
-        }
+        } catch (e) {}
       })();
 
-      // If redux roomId exists, ensure canonical URL
+      // --- NAVIGATION GUARD: prefer server-provided roomId (not stale gameState) ---
       try {
-        const rid = gameState.roomId || r?.roomId || null;
-        if (rid && lastPushedRoomRef.current !== rid) {
-          lastPushedRoomRef.current = rid;
-          router.replace(`/play/${encodeURIComponent(rid)}`);
+        const rid =
+          (r && (r.roomId || r.roomId === 0 ? r.roomId : null)) || null;
+        if (rid) {
+          // construct canonical target path
+          const target = `/play/${encodeURIComponent(rid)}`;
+          const alreadyOnPath =
+            router.asPath && router.asPath.split("?")[0] === target;
+          if (!alreadyOnPath && lastPushedRoomRef.current !== String(rid)) {
+            lastPushedRoomRef.current = String(rid);
+            try {
+              // use replace to avoid pushing history entries repeatedly
+              router.replace(target);
+            } catch (e) {}
+          }
         }
       } catch (e) {}
     });
@@ -704,11 +704,23 @@ export default function ChessBoard({
         lastPushedRoomRef.current = null;
         router.replace("/play");
       } catch (e) {}
+
+      // If user is currently viewing the same room path, clear redux roomId.
       try {
-        if (gameState.roomId === rid) {
-          dispatch(setRoomId(null));
+        // derive current roomId from URL rather than relying on possibly stale `gameState` closure
+        const m =
+          router.asPath &&
+          router.asPath.split("?")[0].match(/^\/play\/([^/]+)/);
+        const currentRid = m ? decodeURIComponent(m[1]) : null;
+        if (currentRid && currentRid === String(rid)) {
+          try {
+            dispatch(setRoomId(null));
+          } catch (e) {}
         }
-      } catch (e) {}
+      } catch (e) {
+        // fallback: don't break if any error occurs
+      }
+
       // reset UI state so clocks/moves don't leak from previous room
       try {
         resetForNewRoom(null);

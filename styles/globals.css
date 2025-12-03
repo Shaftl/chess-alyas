@@ -6,6 +6,8 @@
   box-sizing: border-box;
   font-family: "Stack Sans Notch", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+
+  /* font-family: "Montserrat"; */
   font-weight: 300;
 }
 
