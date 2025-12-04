@@ -88,6 +88,12 @@
   width: 3.4rem;
 }
 
+.logoIcon svg {
+  width: 100%;
+  height: 100%;
+  fill: #fff;
+}
+
 .logoIcon img {
   width: 100%;
   height: 100%;

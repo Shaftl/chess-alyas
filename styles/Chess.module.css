@@ -523,9 +523,15 @@
   padding: 0.4rem 0.8rem;
   border-radius: 0.4rem;
   cursor: pointer;
-  font-size: 1rem;
+  /* font-size: 1rem; */
   backdrop-filter: blur(10px);
   align-self: flex-start;
+}
+
+.fullScreenBtn svg {
+  fill: #fff;
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 /* ---------- BOARD: prefer a height-driven size so board resists shrinking on zoom-out ---------- */
@@ -767,3 +773,5 @@
     height: min(260px, 72vh);
   }
 }
+
+/*  */

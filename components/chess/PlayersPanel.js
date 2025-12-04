@@ -313,7 +313,9 @@ export default function PlayersPanel({
         title={`${cups} cups`}
         aria-hidden="false"
       >
-        <span className={styles.cupsIcon}>🏆</span>
+        <span className={styles.cupsIcon}>
+          <img src="/trophy.png" width={16} alt="Cup icon" />
+        </span>
         <span className={styles.cupsNumber}>{cups}</span>
       </span>
     );
@@ -389,6 +391,7 @@ export default function PlayersPanel({
         >
           {formatMsLocal(ms)}
         </span>
+
         {displayLabel && (
           <span
             className={`${styles.clockBadge} ${
@@ -486,7 +489,17 @@ export default function PlayersPanel({
             />
           </div>
 
-          <div className={styles.devider}></div>
+          <div className={styles.devider}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="36"
+              height="36"
+              fill="#000000"
+              viewBox="0 0 256 256"
+            >
+              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm56,112H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48a8,8,0,0,1,0,16Z"></path>
+            </svg>
+          </div>
 
           <div className={`${styles.playerMeta}`}>
             <ClockDisplay

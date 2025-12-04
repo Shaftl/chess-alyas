@@ -18,6 +18,18 @@
 }
 
 .headerControlsBox button {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 1.2rem;
+}
+
+.headerControlsBox svg {
+  width: 2.2rem;
+  fill: #fff;
+}
+
+.headerControlsBox button {
   min-width: 100% !important;
   text-align: left !important;
 }

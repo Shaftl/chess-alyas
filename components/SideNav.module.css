@@ -38,7 +38,7 @@
 
 /* inside a .module.css file */
 .navLink svg {
-  height: 2.4rem !important;
+  height: 2.7rem !important;
   width: auto;
   position: relative;
   z-index: 1;
@@ -144,7 +144,7 @@
   }
 
   .navLink svg {
-    height: 2rem !important;
+    height: 2.3rem !important;
   }
 
   .navLinkText {
@@ -183,7 +183,7 @@
   }
 
   .navLink svg {
-    height: 1.8rem !important;
+    height: 2.1rem !important;
   }
 
   .navLinkText {
@@ -222,7 +222,7 @@
   }
 
   .navLink svg {
-    height: 1.6rem !important;
+    height: 1.9rem !important;
   }
 
   .navLinkText {
@@ -257,7 +257,7 @@
   }
 
   .navLink svg {
-    height: 1.4rem !important;
+    height: 1.7rem !important;
   }
 
   .navLinkText {

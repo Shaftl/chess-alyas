@@ -3,6 +3,7 @@
   width: 26rem;
   background: #0000003a;
   transition: all 0.3s;
+  height: calc(100vh - 8rem);
 }
 
 .sidebarSection {
@@ -68,5 +69,6 @@
     width: 26rem;
     opacity: 1;
     visibility: visible;
+    height: auto;
   }
 }
