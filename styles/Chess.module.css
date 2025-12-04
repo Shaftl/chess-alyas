@@ -44,6 +44,15 @@
   overflow: hidden;
   pointer-events: auto;
   opacity: 1;
+
+  width: min(
+    calc(80vh - (2 * var(--fs-gap))),
+    calc(80vw - var(--fs-right-width) - (2 * var(--fs-gap)))
+  );
+  height: min(
+    calc(80vh - (2 * var(--fs-gap))),
+    calc(80vw - var(--fs-right-width) - (2 * var(--fs-gap)))
+  );
 }
 
 /* Board disabled state when game over */
