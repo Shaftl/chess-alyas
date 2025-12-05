@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import BtnSpinner from "./BtnSpinner";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -84,7 +85,7 @@ export default function BackgroundUploader({ children, className, onDone }) {
   }
 
   return (
-    <div className={className || ""}>
+    <div>
       <input
         ref={fileRef}
         type="file"
@@ -92,12 +93,20 @@ export default function BackgroundUploader({ children, className, onDone }) {
         onChange={handleChange}
         style={{ display: "none" }}
       />
-      <button type="button" onClick={openDialog} disabled={loading}>
-        {children || "Upload background"}
+      <button
+        type="button"
+        onClick={openDialog}
+        disabled={loading}
+        className={className}
+      >
+        {progress !== null && (
+          <div style={{ display: "flex", alignItems: "center", gap: "1.6rem" }}>
+            <BtnSpinner /> Uploading...
+          </div>
+        )}
+
+        {progress === null && (children || "Upload background")}
       </button>
-      {progress !== null && (
-        <div style={{ marginTop: 8, fontSize: 12 }}>Uploading: {progress}%</div>
-      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "@/store/slices/authSlice";
 import { useRouter } from "next/navigation";
 import styles from "./AccountDropdown.module.css";
+import BackgroundUploader from "./BackgroundUploader";
 
 /**
  * AccountDropdown
@@ -164,6 +165,10 @@ export default function AccountDropdown() {
           >
             Profile
           </button>
+
+          <BackgroundUploader className={styles.profileButton}>
+            Change Background
+          </BackgroundUploader>
 
           <div className={styles.spacer} />
 

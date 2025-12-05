@@ -464,6 +464,111 @@ export default function HeaderControls({
             Play with Friend
           </button>
 
+          {isPlayWithFriend && (
+            <div className={styles.isPlayWithFriend}>
+              <input
+                className={`${styles.roomInput} ${styles.createCodeInput}`}
+                value={createCode}
+                onChange={(e) => setCreateCode(e.target.value)}
+                placeholder="Optional custom code"
+              />
+
+              <div className={styles.selectGroup}>
+                <select
+                  value={createMinutes}
+                  onChange={(e) => setCreateMinutes(Number(e.target.value))}
+                  className={styles.roomInput}
+                >
+                  <option value={1}>1 min</option>
+                  <option value={3}>3 min</option>
+                  <option value={5}>5 min</option>
+                  <option value={10}>10 min</option>
+                  <option value={15}>15 min</option>
+                </select>
+
+                <select
+                  value={createColorPref}
+                  onChange={(e) => setCreateColorPref(e.target.value)}
+                  className={styles.roomInput}
+                >
+                  <option value="random">Random</option>
+                  <option value="white">White</option>
+                  <option value="black">Black</option>
+                </select>
+              </div>
+
+              <div className={styles.createActions}>
+                <button
+                  className={`${styles.btn} btn-secondary ${styles.headerControlsbtn}`}
+                  onClick={async () => {
+                    const ok = await ensureNoActiveRoomBeforeCreate();
+                    if (ok) {
+                      createRoom();
+                    }
+                  }}
+                >
+                  Create Room
+                </button>
+
+                <div className={styles.inviteColumn}>
+                  <div className={styles.friendsListContainer}>
+                    <div className={styles.friendsHeader}>Your friends</div>
+
+                    {loadingFriends && <div>Loading friends…</div>}
+                    {!loadingFriends && friends.length === 0 && (
+                      <div className={styles.noFriends}>No friends found</div>
+                    )}
+
+                    <div className={styles.friendsList}>
+                      {friends.map((f) => {
+                        const st = inviteStatusById[f.id] || null;
+                        return (
+                          <div key={f.id} className={styles.friendRow}>
+                            <div className={styles.friendInfo}>
+                              <img
+                                alt={f.username}
+                                src={avatarForFriend(f)}
+                                className={styles.friendAvatar}
+                              />
+                              <div className={styles.friendTitle}>
+                                <div className={styles.friendName}>
+                                  {f.displayName || f.username}
+                                </div>
+                                <div className={styles.friendMeta}>
+                                  {f.country ? f.country : ""}
+                                  {f.online ? " • online" : ""}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className={styles.friendActions}>
+                              <button
+                                className={`${styles.btn} ${styles.btnInvite}`}
+                                onClick={() => inviteFriendToGame(f)}
+                                disabled={st && st.sending}
+                              >
+                                {st && st.sending ? "Inviting…" : "Invite"}
+                              </button>
+                              {st && st.message && (
+                                <div
+                                  className={
+                                    st.ok ? styles.inviteOk : styles.inviteError
+                                  }
+                                >
+                                  {st.message}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* NEW: Play Online */}
           <button
             className={`${styles.btn} ${styles["btn-online"]}`}
@@ -502,111 +607,6 @@ export default function HeaderControls({
             )}
           </button>
         </div>
-
-        {isPlayWithFriend && (
-          <div className={styles.isPlayWithFriend}>
-            <input
-              className={`${styles.roomInput} ${styles.createCodeInput}`}
-              value={createCode}
-              onChange={(e) => setCreateCode(e.target.value)}
-              placeholder="Optional custom code"
-            />
-
-            <div className={styles.selectGroup}>
-              <select
-                value={createMinutes}
-                onChange={(e) => setCreateMinutes(Number(e.target.value))}
-                className={styles.roomInput}
-              >
-                <option value={1}>1 min</option>
-                <option value={3}>3 min</option>
-                <option value={5}>5 min</option>
-                <option value={10}>10 min</option>
-                <option value={15}>15 min</option>
-              </select>
-
-              <select
-                value={createColorPref}
-                onChange={(e) => setCreateColorPref(e.target.value)}
-                className={styles.roomInput}
-              >
-                <option value="random">Random</option>
-                <option value="white">White</option>
-                <option value="black">Black</option>
-              </select>
-            </div>
-
-            <div className={styles.createActions}>
-              <button
-                className={`${styles.btn} btn-secondary ${styles.headerControlsbtn}`}
-                onClick={async () => {
-                  const ok = await ensureNoActiveRoomBeforeCreate();
-                  if (ok) {
-                    createRoom();
-                  }
-                }}
-              >
-                Create Room
-              </button>
-
-              <div className={styles.inviteColumn}>
-                <div className={styles.friendsListContainer}>
-                  <div className={styles.friendsHeader}>Your friends</div>
-
-                  {loadingFriends && <div>Loading friends…</div>}
-                  {!loadingFriends && friends.length === 0 && (
-                    <div className={styles.noFriends}>No friends found</div>
-                  )}
-
-                  <div className={styles.friendsList}>
-                    {friends.map((f) => {
-                      const st = inviteStatusById[f.id] || null;
-                      return (
-                        <div key={f.id} className={styles.friendRow}>
-                          <div className={styles.friendInfo}>
-                            <img
-                              alt={f.username}
-                              src={avatarForFriend(f)}
-                              className={styles.friendAvatar}
-                            />
-                            <div className={styles.friendTitle}>
-                              <div className={styles.friendName}>
-                                {f.displayName || f.username}
-                              </div>
-                              <div className={styles.friendMeta}>
-                                {f.country ? f.country : ""}
-                                {f.online ? " • online" : ""}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className={styles.friendActions}>
-                            <button
-                              className={`${styles.btn} ${styles.btnInvite}`}
-                              onClick={() => inviteFriendToGame(f)}
-                              disabled={st && st.sending}
-                            >
-                              {st && st.sending ? "Inviting…" : "Invite"}
-                            </button>
-                            {st && st.message && (
-                              <div
-                                className={
-                                  st.ok ? styles.inviteOk : styles.inviteError
-                                }
-                              >
-                                {st.message}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Online matchmaking status */}
         <div className={styles.onlineStatus}>
