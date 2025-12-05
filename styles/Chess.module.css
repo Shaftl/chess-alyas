@@ -91,8 +91,8 @@
 
 /* Piece image styling — preserves look & sizing */
 .pieceImg {
-  width: 90%;
-  height: 90%;
+  width: 96%;
+  height: 96%;
   object-fit: contain;
   /* allow pointer events so dragstart/onclick work */
   pointer-events: auto;
@@ -307,8 +307,16 @@
   position: relative;
   grid-template-columns: auto auto 1fr 1fr;
   align-items: center;
-  /* justify-content: center; */
+
+  justify-content: center;
 }
+
+.mainContentDiv {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Promotion Modal - Modern Clean Design */
 .promotionModal {
   position: fixed;
@@ -678,6 +686,11 @@
     overflow: hidden;
   }
 
+  .boardContainer {
+    width: min(500px, 72vh) !important;
+    height: min(500px, 72vh) !important;
+  }
+
   .menuIconBtn {
     position: absolute;
     right: 1rem;
@@ -759,8 +772,8 @@
 @media (max-width: 500px) {
   .boardContainer {
     /* slightly reduced from 640 -> 600 for a modest, professional shrink */
-    width: min(400px, 72vh);
-    height: min(400px, 72vh);
+    width: min(400px, 72vh) !important;
+    height: min(400px, 72vh) !important;
   }
 
   .wrapper {
@@ -771,16 +784,89 @@
 @media (max-width: 400px) {
   .boardContainer {
     /* slightly reduced from 640 -> 600 for a modest, professional shrink */
-    width: min(300px, 72vh);
-    height: min(300px, 72vh);
+    width: min(300px, 72vh) !important;
+    height: min(300px, 72vh) !important;
   }
 }
 @media (max-width: 350px) {
   .boardContainer {
     /* slightly reduced from 640 -> 600 for a modest, professional shrink */
-    width: min(260px, 72vh);
-    height: min(260px, 72vh);
+    width: min(260px, 72vh) !important;
+    height: min(260px, 72vh) !important;
   }
 }
 
 /*  */
+
+/* ---------- tiny, namespaced drag-preview & origin hide rules (non-invasive) ---------- */
+/* ---------- drag-preview & origin hide rules (non-invasive) ---------- */
+
+/* container for preview image (appended to body) */
+.dragLayer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 99999;
+}
+
+/* preview image styling (looks like a lifted tile) */
+.dragPreview {
+  position: fixed;
+  pointer-events: none;
+  /* ensure cursor shows on desktop while dragging */
+  cursor: grabbing;
+}
+
+/* hide the original piece while pointer / native drag is active to avoid duplicates */
+.dragging-origin,
+.draggingOrigin {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* small helper to keep board itself from allowing pointer events bleed (rare) */
+.boardContainer,
+.boardContainer * {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* ---------- Cursor polish: show grab / grabbing on board & pieces ---------- */
+
+/* Use grab on the board and squares so pointer isn't shown */
+.boardContainer .pieceImg,
+.boardContainer .pieceFallback {
+  cursor: grab;
+  -webkit-user-drag: none;
+  touch-action: none; /* helps pointer-based drags behave consistently on touch */
+  -webkit-touch-callout: none;
+}
+
+.boardContainer,
+.boardContainer .square {
+  cursor: auto;
+}
+
+/* When user presses mouse/finger, switch to grabbing (visual feedback) */
+.boardContainer .pieceImg:active,
+.boardContainer .square:active,
+.boardContainer:active {
+  cursor: auto !important;
+  cursor: -webkit-auto !important;
+}
+
+/* Drag preview should also show auto */
+.dragPreview {
+  cursor: auto;
+  cursor: -webkit-auto;
+}
+
+/* Fallback: JS sets body style to 'auto' during pointer drag — ensure nothing overrides it */
+body[style*="cursor: auto"],
+body[style*="cursor: -webkit-auto"] {
+  cursor: auto !important;
+  cursor: -webkit-auto !important;
+}

@@ -1,4 +1,3 @@
-// frontend/components/ChessBoard.js
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -41,6 +40,27 @@ import CapturedPieces from "./chess/CapturedPieces";
 
 import soundManager from "@/lib/soundManager";
 import ActiveRoomModal from "@/components/ActiveRoomModal";
+
+/* New imports: hooks and helpers that contain the big logic blocks */
+import useChessSocket from "@/lib/chessBoardHooks/useChessSocket";
+import useClockEffect from "@/lib/chessBoardHooks/useClockEffect";
+import {
+  normalizePromotionCharLocal,
+  invokeBoolMethod,
+  gameStatus,
+  boardMatrix as helperBoardMatrix,
+  getFenForMoveIndex as helperGetFenForMoveIndex,
+  capturedPiecesImages as helperCapturedPiecesImages,
+  findKingSquare as helperFindKingSquare,
+} from "@/lib/chessBoardHooks/chessHelpers";
+import {
+  startReplayImpl,
+  stopReplayImpl as stopReplayImplUtil,
+  exportPGNImpl,
+  copyPGNToClipboardImpl,
+  jumpToMoveImpl,
+  getFenForMoveIndexImpl,
+} from "@/lib/chessBoardHooks/replayUtils";
 
 /* Board coords */
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -287,11 +307,7 @@ export default function ChessBoard({
   const lastPushedRoomRef = useRef(null);
 
   function stopReplayImpl() {
-    replayRef.current.playing = false;
-    if (replayRef.current.timer) {
-      clearTimeout(replayRef.current.timer);
-      replayRef.current.timer = null;
-    }
+    stopReplayImplUtil(replayRef);
   }
 
   // Reset UI/ephemeral client state for a room transition (safe, non-destructive)
@@ -344,7 +360,7 @@ export default function ChessBoard({
     prevPlayersCountRef.current = 0;
   }
 
-  /* ---------- Fullscreen additions ---------- */
+  /* ---------- Fullscreen additions (kept here) ---------- */
   const boardBoxRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -437,622 +453,50 @@ export default function ChessBoard({
   }, [toggleFullscreen]);
 
   /* ---------- Socket init / handlers ---------- */
-  useEffect(() => {
-    const s = initSocket();
-    socketRef.current = s;
+  useChessSocket({
+    initSocket,
+    socketRef,
+    chessRef,
+    gameState,
+    auth,
+    dispatch,
+    router,
+    setStatusMsg,
+    setPlayers,
+    setClocks,
+    setMoveHistory,
+    setRematchPending,
+    setMyPendingRematch,
+    setDrawOffer,
+    setMyPendingDrawOffer,
+    setGameOverState,
+    setMoveHistory,
+    lastIndexRef,
+    prevPlayersCountRef,
+    prevPendingRef,
+    lastPushedRoomRef,
+    attemptedSeatRef,
+    prevClocksRef,
+    prevSecondsRef,
+    moveSoundEnabled,
+    tickSoundEnabled,
+    timerLowRunningRef,
+    playMoveSound,
+    playTick,
+    stopReplayImpl,
+    dispatchJoinRoomSuccess: joinRoomSuccess,
+    dispatchOpponentMove: opponentMove,
+    dispatchLocalMove: localMove,
+    dispatchAddMessage: addMessage,
+    API,
+    setJoinModalOpen,
+    setJoinResult,
+    setJoinChecking,
+    setJoinInput,
+    setRoomText,
+  });
 
-    // if spectatorOnly, mark attemptedSeatRef so we don't auto-seat later
-    attemptedSeatRef.current = spectatorOnly;
-
-    const resumeAudioOnGesture = () => {
-      try {
-        soundManager.ensureContextOnGesture();
-        if (soundManager.ctx && soundManager.ctx.state === "suspended") {
-          soundManager.ctx.resume().catch(() => {});
-        }
-      } catch (e) {}
-      document.removeEventListener("click", resumeAudioOnGesture);
-      document.removeEventListener("keydown", resumeAudioOnGesture);
-    };
-    document.addEventListener("click", resumeAudioOnGesture);
-    document.addEventListener("keydown", resumeAudioOnGesture);
-
-    // Ensure SoundManager listens for gesture if not already
-    try {
-      soundManager.ensureContextOnGesture();
-    } catch (e) {}
-
-    // Important: DO NOT auto-join from URL here.
-    // If Redux already has a roomId, request sync so UI updates.
-    s.on("connect", () => {
-      if (gameState.roomId) {
-        try {
-          s.emit("request-sync", { roomId: gameState.roomId });
-        } catch (e) {}
-      }
-    });
-
-    // handle server-assigned color
-    s.on("player-assigned", ({ color }) => {
-      dispatch(setPlayerColor(color));
-      setStatusMsg(
-        color === "spectator"
-          ? "You are a spectator"
-          : `You are ${color === "w" ? "White" : "Black"}`
-      );
-    });
-
-    // replace original s.on("room-update", (r) => { ... })
-    s.on("room-update", (r) => {
-      const priorPending = prevPendingRef.current;
-
-      if (r && r.pendingRematch) {
-        const pr = r.pendingRematch;
-        let initiatorPlayer =
-          (r.players || []).find(
-            (p) =>
-              (p.user && p.user.id && p.user.id === pr.initiatorUserId) ||
-              p.id === pr.initiatorSocketId
-          ) || null;
-
-        const fromObj =
-          initiatorPlayer && initiatorPlayer.user
-            ? { ...initiatorPlayer.user, id: initiatorPlayer.user.id || null }
-            : {
-                username:
-                  (initiatorPlayer && initiatorPlayer.user?.username) ||
-                  (typeof pr.initiatorUserId === "string"
-                    ? pr.initiatorUserId
-                    : "Opponent"),
-                id: pr.initiatorUserId || pr.initiatorSocketId || null,
-              };
-
-        setRematchPending(
-          pr
-            ? {
-                from: fromObj,
-                initiatorSocketId: pr.initiatorSocketId,
-                initiatorUserId: pr.initiatorUserId,
-                acceptedBy: pr.acceptedBy || [],
-              }
-            : null
-        );
-      } else {
-        setRematchPending(null);
-      }
-
-      // dispatch the room update immediately so UI responds fast
-      dispatch(joinRoomSuccess(r));
-      if (r && r.fen) {
-        try {
-          const ok = chessRef.current.load(r.fen);
-          if (!ok) chessRef.current = new Chess(r.fen);
-        } catch {
-          chessRef.current = new Chess(r.fen || undefined);
-        }
-      }
-      lastIndexRef.current =
-        typeof r.lastIndex === "number" ? r.lastIndex : lastIndexRef.current;
-
-      // keep original flow
-      setPlayers(r.players || []);
-      setClocks(r.clocks || { w: null, b: null, running: null });
-      setMoveHistory(r.moves || []);
-      if (analysisIndex !== null) setAnalysisIndex(null);
-
-      const pending = r.pendingDrawOffer || null;
-      setDrawOffer(pending ? { from: pending.from } : null);
-
-      const myId = auth?.user?.id || null;
-      const offererId = pending?.from?.id || null;
-
-      setMyPendingDrawOffer(!!(pending && offererId === myId));
-
-      if (!pending && priorPending) {
-        const priorOffererId = priorPending.from?.id || null;
-        if (priorOffererId === myId) {
-          if (r.finished && r.finished.reason === "draw-agreed") {
-            setStatusMsg("Your draw offer was accepted — game drawn");
-          } else {
-            setStatusMsg("Your draw offer was declined");
-          }
-          setMyPendingDrawOffer(false);
-        } else {
-          if (r.finished && r.finished.reason === "draw-agreed") {
-            setStatusMsg("Draw accepted");
-          } else {
-            setStatusMsg("Draw declined");
-          }
-        }
-      }
-
-      prevPendingRef.current = pending;
-
-      if (r.finished) {
-        setGameOverState({
-          over: true,
-          reason: r.finished.reason || "game-over",
-          winner:
-            r.finished.winner ?? (r.finished.result === "draw" ? "draw" : null),
-          loser: r.finished.loser ?? null,
-          message: r.finished.message ?? null,
-        });
-        setStatusMsg(r.finished.message || "Game finished");
-      } else {
-        setGameOverState((prev) =>
-          prev.over ? { ...prev, over: false } : prev
-        );
-      }
-
-      refreshUI();
-      const colored = (r.players || []).filter(
-        (p) => p.color === "w" || p.color === "b"
-      );
-
-      // NEW: detect start-of-game transition: previously <2 players, now >=2 and not finished
-      try {
-        const prevCount = prevPlayersCountRef.current || 0;
-        const newCount = colored.length || 0;
-        if (newCount >= 2 && prevCount < 2 && !r.finished) {
-          try {
-            if (moveSoundEnabled) soundManager.playStart();
-          } catch (e) {}
-        }
-        prevPlayersCountRef.current = newCount;
-      } catch (e) {}
-
-      if (r.finished) {
-        setStatusMsg(r.finished.message || "Game finished");
-      } else if (colored.length < 2) {
-        setStatusMsg("Waiting for second player...");
-      } else {
-        setStatusMsg("Game ready");
-      }
-
-      // client-side enrichment unchanged (fetch missing user profiles)
-      (async () => {
-        try {
-          const rawPlayers = r.players || [];
-          const needFetchIds = rawPlayers
-            .map((p) => p?.user?.id || p?.user?._id || p?.id)
-            .filter(Boolean)
-            .filter((id) => {
-              const pl = rawPlayers.find(
-                (x) =>
-                  (x.user && (x.user.id === id || x.user._id === id)) ||
-                  x.id === id
-              );
-              if (!pl) return false;
-              const u = pl.user || {};
-              const missingProfile =
-                !u.username || !u.displayName || !u.avatarUrl;
-              const missingCups =
-                typeof u.cups === "undefined" || u.cups === null;
-              return missingProfile || missingCups;
-            });
-
-          if (!needFetchIds.length) return;
-
-          const uniqueIds = [...new Set(needFetchIds)];
-          const base = API.replace(/\/api\/?$/, "");
-          const fetches = uniqueIds.map((id) =>
-            fetch(`${base}/api/players/${encodeURIComponent(id)}`, {
-              credentials: "include",
-            })
-              .then((res) => (res.ok ? res.json() : null))
-              .catch(() => null)
-          );
-
-          const results = await Promise.all(fetches);
-          const byId = {};
-          results.forEach((res) => {
-            if (!res) return;
-            const uid = res.id || res._id;
-            if (uid) {
-              const normalizedAvatar =
-                normalizeAvatarUrlFromAuthUser(res) ||
-                res.avatarUrlAbsolute ||
-                res.avatarUrl ||
-                res.avatar ||
-                null;
-              byId[String(uid)] = { ...res, avatarUrl: normalizedAvatar };
-            }
-          });
-
-          const enriched = rawPlayers.map((pl) => {
-            const uid =
-              pl?.user?.id ||
-              pl?.user?._id ||
-              pl?.id ||
-              (pl.user && pl.user.id);
-            if (uid && byId[String(uid)]) {
-              return { ...pl, user: { ...(byId[String(uid)] || {}), id: uid } };
-            }
-            return pl;
-          });
-
-          // update redux + local state with enriched players
-          dispatch(joinRoomSuccess({ ...r, players: enriched }));
-          setPlayers(enriched);
-        } catch (e) {}
-      })();
-
-      // --- NAVIGATION GUARD: prefer server-provided roomId (not stale gameState) ---
-      try {
-        const rid =
-          (r && (r.roomId || r.roomId === 0 ? r.roomId : null)) || null;
-        if (rid) {
-          // construct canonical target path
-          const target = `/play/${encodeURIComponent(rid)}`;
-          const alreadyOnPath =
-            router.asPath && router.asPath.split("?")[0] === target;
-          if (!alreadyOnPath && lastPushedRoomRef.current !== String(rid)) {
-            lastPushedRoomRef.current = String(rid);
-            try {
-              // use replace to avoid pushing history entries repeatedly
-              router.replace(target);
-            } catch (e) {}
-          }
-        }
-      } catch (e) {}
-    });
-
-    // When server notifies no such room
-    s.on("no-such-room", ({ roomId: rid }) => {
-      setStatusMsg(`No room with id ${rid}`);
-      try {
-        lastPushedRoomRef.current = null;
-        router.replace("/play");
-      } catch (e) {}
-
-      // If user is currently viewing the same room path, clear redux roomId.
-      try {
-        // derive current roomId from URL rather than relying on possibly stale `gameState` closure
-        const m =
-          router.asPath &&
-          router.asPath.split("?")[0].match(/^\/play\/([^/]+)/);
-        const currentRid = m ? decodeURIComponent(m[1]) : null;
-        if (currentRid && currentRid === String(rid)) {
-          try {
-            dispatch(setRoomId(null));
-          } catch (e) {}
-        }
-      } catch (e) {
-        // fallback: don't break if any error occurs
-      }
-
-      // reset UI state so clocks/moves don't leak from previous room
-      try {
-        resetForNewRoom(null);
-      } catch (e) {}
-    });
-
-    s.on("room-created", (payload) => {
-      if (!payload) return;
-      if (payload.ok) {
-        setRoomText(payload.roomId || "");
-        dispatch(setRoomId(payload.roomId || ""));
-        setStatusMsg(`Room ${payload.roomId} created`);
-        // push to route /play/<roomId>
-        try {
-          lastPushedRoomRef.current = payload.roomId;
-          router.push(`/play/${encodeURIComponent(payload.roomId)}`);
-        } catch (e) {}
-      } else {
-        setStatusMsg(payload.error || "Failed to create room");
-      }
-    });
-
-    s.on("clock-update", (c) => c && setClocks(c));
-
-    s.on("opponent-move", (record) => {
-      if (!record || typeof record.index === "undefined") {
-        s.emit("request-sync", { roomId: gameState.roomId });
-        return;
-      }
-      if (record.index <= lastIndexRef.current) return;
-      try {
-        const res = chessRef.current.move(record.move);
-        if (res) {
-          lastIndexRef.current = record.index;
-          setMoveHistory((mh) => [
-            ...mh,
-            { index: record.index, move: record.move, fen: record.fen },
-          ]);
-          dispatch(opponentMove(record));
-          if (record.fen) {
-            try {
-              chessRef.current.load(record.fen);
-            } catch {}
-          }
-          if (record.clocks) setClocks(record.clocks);
-          // try to use positional playback sound if possible
-          try {
-            const from = record.move?.from || null;
-            const to = record.move?.to || null;
-            playMoveSound(!!res.captured, from, to);
-          } catch (e) {
-            playMoveSound(!!res.captured);
-          }
-
-          // NEW: special-case sounds for opponent move (promotion / castle)
-          try {
-            if (moveSoundEnabled && res) {
-              // promotion (res.promotion is usually present for promotions)
-              if (res.promotion) {
-                try {
-                  soundManager.playPromotion();
-                } catch (e) {}
-              }
-              // castle: chess.js flags often contain 'k' (kingside) or 'q' (queenside)
-              const flags = res.flags || "";
-              const san = (res.san || "").toString();
-              if (
-                flags.toString().includes("k") ||
-                flags.toString().includes("q") ||
-                san.includes("O-O")
-              ) {
-                try {
-                  soundManager.playCastle();
-                } catch (e) {}
-              }
-            }
-          } catch (e) {}
-
-          refreshUI();
-        } else {
-          s.emit("request-sync", { roomId: gameState.roomId });
-        }
-      } catch (e) {
-        s.emit("request-sync", { roomId: gameState.roomId });
-      }
-    });
-
-    s.on("chat-message", (msg) => {
-      try {
-        dispatch(addMessage(msg));
-      } catch (e) {}
-    });
-
-    s.on("invalid-move", (payload) => {
-      setStatusMsg(payload.reason || "Invalid move");
-      s.emit("request-sync", { roomId: gameState.roomId });
-    });
-
-    s.on("not-your-turn", (payload) =>
-      setStatusMsg(payload.error || "Not your turn")
-    );
-    s.on("not-enough-players", (payload) =>
-      setStatusMsg(payload.error || "Waiting for another player")
-    );
-    s.on("auth-required", () =>
-      setStatusMsg(
-        "Log in to take a playing seat (only authenticated users can play)."
-      )
-    );
-
-    s.on("draw-offered", ({ from }) => {
-      const myId = auth?.user?.id || null;
-      if (from && from.id && from.id === myId) return;
-      setDrawOffer({ from });
-      setStatusMsg("Opponent offered a draw");
-    });
-
-    s.on("rematch-offered", ({ from }) => {
-      setRematchPending({ from });
-      setStatusMsg("Rematch requested");
-    });
-
-    s.on("rematch-declined", (payload) => {
-      setRematchPending(null);
-      setMyPendingRematch(false);
-      setStatusMsg(payload?.message || "Rematch declined");
-    });
-
-    s.on("play-again", (payload) => {
-      if (!payload) return;
-      if (payload.started) {
-        try {
-          chessRef.current = new Chess();
-        } catch {
-          chessRef.current = new Chess();
-        }
-        lastIndexRef.current = -1;
-        setMoveHistory([]);
-        setSelected(null);
-        setLegalMoves([]);
-        setLegalMovesVerbose([]);
-        setAnalysisIndex(null);
-        setGameOverState({
-          over: false,
-          reason: null,
-          winner: null,
-          loser: null,
-          message: null,
-        });
-        setRematchPending(null);
-        setMyPendingRematch(false);
-        setDrawOffer(null);
-        setStatusMsg(payload.message || "Rematch started");
-        try {
-          dispatch(setFenRedux(chessRef.current.fen()));
-        } catch (e) {}
-        refreshUI();
-
-        // NEW: play start sound for rematch started (respect user toggle)
-        try {
-          if (moveSoundEnabled) soundManager.playStart();
-        } catch (e) {}
-
-        // NEW: if server started a rematch in a NEW room, redirect client to that room and request sync.
-        try {
-          const newRoomId = payload.roomId || null;
-          // Only navigate if we actually received a new room id and we're not already on it.
-          if (
-            newRoomId &&
-            String(newRoomId).trim() &&
-            lastPushedRoomRef.current !== newRoomId
-          ) {
-            dispatch(setRoomId(newRoomId));
-            lastPushedRoomRef.current = newRoomId;
-            try {
-              router.push(`/play/${encodeURIComponent(newRoomId)}`);
-            } catch (e) {}
-            try {
-              socketRef.current?.emit("request-sync", { roomId: newRoomId });
-            } catch (e) {}
-          }
-        } catch (e) {
-          // non-fatal
-        }
-      } else {
-        setMyPendingRematch(true);
-        setStatusMsg(payload.message || "Rematch requested");
-      }
-    });
-
-    s.on("game-over", (payload) => {
-      if (payload?.reason === "timeout")
-        setStatusMsg(`Game over — ${payload.winner} wins by timeout`);
-      else if (payload?.reason === "resign")
-        setStatusMsg(`Game over — ${payload.winner} wins (resignation)`);
-      else if (payload?.reason === "opponent-disconnected")
-        setStatusMsg(payload.message || "Game over — opponent disconnected");
-      else if (payload?.reason === "first-move-timeout")
-        setStatusMsg(payload.message || "Game drawn (no first move)");
-      else if (payload?.reason === "draw-agreed")
-        setStatusMsg("Game drawn by agreement");
-      else setStatusMsg(payload.message || "Game over");
-
-      setGameOverState({
-        over: true,
-        reason: payload?.reason || "game-over",
-        winner: payload?.winner ?? null,
-        loser: payload?.loser ?? null,
-        message: payload?.message ?? null,
-      });
-
-      // play a sound for checkmate if reason indicates checkmate
-      try {
-        if (payload?.reason === "checkmate") {
-          if (moveSoundEnabled) soundManager.playCheckmate();
-        }
-      } catch (e) {}
-
-      // stop any timerLow sequence if running
-      try {
-        soundManager.stopTimerLow();
-        timerLowRunningRef.current = false;
-      } catch (e) {}
-
-      stopReplayImpl();
-    });
-
-    return () => {
-      if (!s) return;
-      s.off("connect");
-      s.off("player-assigned");
-      s.off("room-update");
-      s.off("opponent-move");
-      s.off("invalid-move");
-      s.off("not-your-turn");
-      s.off("not-enough-players");
-      s.off("clock-update");
-      s.off("game-over");
-      s.off("auth-required");
-      s.off("draw-offered");
-      s.off("room-created");
-      s.off("chat-message");
-      s.off("rematch-offered");
-      s.off("rematch-declined");
-      s.off("play-again");
-      s.off("no-such-room");
-      try {
-        document.removeEventListener("click", resumeAudioOnGesture);
-        document.removeEventListener("keydown", resumeAudioOnGesture);
-      } catch (e) {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /* New effect: if we are in a room but currently a spectator, and auth.user becomes available,
-     attempt a single join-room to let server seat us (avoids spamming). */
-  useEffect(() => {
-    try {
-      const s = socketRef.current;
-      const roomId = gameState.roomId;
-      const myColor = gameState.playerColor;
-      const hasAuthUser = !!(
-        auth &&
-        auth.user &&
-        (auth.user.id || auth.user._id)
-      );
-      if (!s || !s.connected || !roomId) return;
-
-      // If already a player, nothing to do
-      if (myColor === "w" || myColor === "b") {
-        attemptedSeatRef.current = false;
-        return;
-      }
-
-      // Try only once after auth becomes available
-      if (attemptedSeatRef.current) return;
-
-      // If component was mounted in spectatorOnly mode, do not attempt to take a seat
-      if (spectatorOnly) {
-        attemptedSeatRef.current = true;
-        return;
-      }
-
-      // prefer fresh localStorage user if present
-      let userToSend = { username: "guest" };
-      const storedUser = (() => {
-        try {
-          return typeof window !== "undefined" && localStorage.getItem("user")
-            ? JSON.parse(localStorage.getItem("user"))
-            : null;
-        } catch {
-          return null;
-        }
-      })();
-      if (storedUser) {
-        const avatar = normalizeAvatarUrlFromAuthUser(storedUser);
-        userToSend = {
-          id: storedUser.id || storedUser._id,
-          username: storedUser.username,
-          displayName: storedUser.displayName,
-          avatarUrl: avatar,
-        };
-      } else if (hasAuthUser) {
-        const a = auth.user;
-        const avatar = normalizeAvatarUrlFromAuthUser(a);
-        userToSend = {
-          id: a.id || a._id,
-          username: a.username,
-          displayName: a.displayName,
-          avatarUrl: avatar,
-        };
-      }
-
-      try {
-        s.emit("join-room", { roomId, user: userToSend });
-        setStatusMsg("Attempting to take a seat in the room...");
-        attemptedSeatRef.current = true;
-
-        // ensure URL path is canonical
-        try {
-          if (lastPushedRoomRef.current !== roomId) {
-            lastPushedRoomRef.current = roomId;
-            router.push(`/play/${encodeURIComponent(roomId)}`);
-          }
-        } catch (e) {}
-      } catch (e) {
-        // ignore
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, [auth?.user?.id, gameState.roomId, gameState.playerColor]);
+  /* New effect: spectator auto-seat attempt moved into useChessSocket (handled there) */
 
   /* Effect: reset UI when the active roomId changes (prevents leaking clocks/moves between rooms) */
   useEffect(() => {
@@ -1068,82 +512,17 @@ export default function ChessBoard({
   }, [gameState.roomId]);
 
   /* --- helpers / game logic / replay / UI code --- */
+
   function boardMatrix() {
-    try {
-      return chessRef.current.board();
-    } catch {
-      return Array.from({ length: 8 }, () => Array(8).fill(null));
-    }
+    return helperBoardMatrix(chessRef);
   }
 
-  function invokeBoolMethod(possibleNames = []) {
-    try {
-      if (!chessRef.current) return false;
-      for (const name of possibleNames) {
-        const fn = chessRef.current[name];
-        if (typeof fn === "function") {
-          try {
-            const res = fn.call(chessRef.current);
-            return !!res;
-          } catch {
-            continue;
-          }
-        }
-      }
-    } catch {}
-    return false;
+  function invokeBoolMethodLocal(possibleNames = []) {
+    return invokeBoolMethod(chessRef, possibleNames);
   }
 
-  function gameStatus() {
-    if (invokeBoolMethod(["in_checkmate", "inCheckmate", "isCheckmate"]))
-      return { text: "Checkmate", over: true };
-    if (invokeBoolMethod(["in_stalemate", "inStalemate", "isStalemate"]))
-      return { text: "Stalemate", over: true };
-    if (invokeBoolMethod(["in_draw", "inDraw", "isDraw"]))
-      return { text: "Draw", over: true };
-    if (
-      invokeBoolMethod([
-        "in_threefold_repetition",
-        "inThreefoldRepetition",
-        "isThreefoldRepetition",
-      ])
-    )
-      return { text: "Draw (3-fold repetition)", over: true };
-    if (
-      invokeBoolMethod([
-        "insufficient_material",
-        "insufficientMaterial",
-        "isInsufficientMaterial",
-      ])
-    )
-      return { text: "Draw (insufficient material)", over: true };
-    if (invokeBoolMethod(["in_check", "inCheck", "isInCheck", "isCheck"]))
-      return { text: "Check", over: false };
-    return { text: "Ongoing", over: false };
-  }
-
-  // Local promotion normalization (client-side)
-  function normalizePromotionCharLocal(p) {
-    if (!p) return null;
-    try {
-      const s = String(p).trim().toLowerCase();
-      if (!s) return null;
-      if (s === "q" || s.includes("queen")) return "q";
-      if (s === "r" || s.includes("rook")) return "r";
-      if (s === "n" || s.includes("knight") || s === "k") return "n";
-      if (
-        s === "b" ||
-        s.includes("bishop") ||
-        s.includes("eleph") ||
-        s.includes("elephant")
-      )
-        return "b";
-      const first = s[0];
-      if (["q", "r", "n", "b"].includes(first)) return first;
-      return null;
-    } catch (e) {
-      return null;
-    }
+  function gameStatusLocal() {
+    return gameStatus(chessRef);
   }
 
   function attemptMove(from, to) {
@@ -1219,7 +598,7 @@ export default function ChessBoard({
 
     // --- immediate local detection of checkmate/stalemate ---
     try {
-      const status = gameStatus(); // uses chessRef.current
+      const status = gameStatusLocal(); // uses chessRef.current
       if (status.over && status.text === "Checkmate") {
         const winnerColor = result.color; // 'w' | 'b' (mover)
         setGameOverState({
@@ -1568,138 +947,45 @@ export default function ChessBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.moves]);
 
-  useEffect(() => {
-    const prev = prevClocksRef.current || { w: null, b: null };
-    const curr = clocks || { w: null, b: null };
+  /* useClockEffect: moves the clock/clocks effect logic to a separate hook */
+  useClockEffect({
+    clocks,
+    prevClocksRef,
+    prevSecondsRef,
+    prevClocksRefSetter: (v) => (prevClocksRef.current = v),
+    gameOverState,
+    setGameOverState,
+    playTick,
+    tickSoundEnabled,
+    timerLowRunningRef,
+    setStatusMsg,
+    stopReplayImpl,
+    socketRef,
+    gameState,
+  });
 
-    const checkAndHandle = (color) => {
-      const prevVal = prev[color];
-      const currVal = curr[color];
-      if (
-        (prevVal === null || prevVal > 0) &&
-        typeof currVal === "number" &&
-        currVal <= 0
-      ) {
-        if (!gameOverState.over) {
-          const loser = color;
-          const winner = loser === "w" ? "Black" : "White";
-
-          setGameOverState({ over: true, reason: "timeout", winner, loser });
-          setStatusMsg(`Game over — ${winner} wins by timeout`);
-          stopReplayImpl();
-          try {
-            socketRef.current?.emit("player-timeout", {
-              roomId: gameState.roomId,
-              loser,
-            });
-          } catch (e) {}
-        }
-      }
-    };
-
-    checkAndHandle("w");
-    checkAndHandle("b");
-
-    try {
-      const running = clocks.running;
-      if (running) {
-        const secKey = running;
-        const prevSec = prevSecondsRef.current[secKey];
-        const currSec =
-          typeof clocks[secKey] === "number"
-            ? Math.ceil(clocks[secKey] / 1000)
-            : null;
-
-        if (prevSec !== null && currSec !== null && currSec < prevSec) {
-          playTick();
-        }
-
-        // NEW: start/stop last-10s warning
-        try {
-          // if tick sounds are disabled, don't start the timerLow sequence
-          if (tickSoundEnabled) {
-            if (
-              currSec !== null &&
-              currSec <= 10 &&
-              currSec > 0 &&
-              !timerLowRunningRef.current
-            ) {
-              // start countdown sequence: play as many ticks as remain or up to 10
-              const count = Math.min(currSec, 10);
-              soundManager.playTimerLow(count, { interval: 1000 });
-              timerLowRunningRef.current = true;
-            } else if (
-              (currSec !== null &&
-                currSec > 10 &&
-                timerLowRunningRef.current) ||
-              (currSec !== null && currSec <= 0 && timerLowRunningRef.current)
-            ) {
-              soundManager.stopTimerLow();
-              timerLowRunningRef.current = false;
-            }
-          } else {
-            // if user disabled tick sounds, ensure nothing is running
-            if (timerLowRunningRef.current) {
-              soundManager.stopTimerLow();
-              timerLowRunningRef.current = false;
-            }
-          }
-        } catch (e) {}
-
-        prevSecondsRef.current[secKey] = currSec;
-      }
-    } catch (e) {}
-
-    prevClocksRef.current = { w: curr.w, b: curr.b };
-  }, [clocks, gameOverState.over, gameState.roomId, tickSoundEnabled]);
-
+  // Replay & export helpers (delegated to replayUtils)
   function getFenForMoveIndex(targetIndex) {
-    if (!moveHistory || moveHistory.length === 0) return new Chess().fen();
-    const chess = new Chess();
-    for (let i = 0; i <= targetIndex && i < moveHistory.length; i++) {
-      const rec = moveHistory[i];
-      try {
-        chess.move(rec.move);
-      } catch {}
-    }
-    return chess.fen();
+    return getFenForMoveIndexImpl({ moveHistory, targetIndex });
   }
 
   function jumpToMove(index) {
-    if (index === null) {
-      chessRef.current = new Chess(gameState.fen || undefined);
-      setAnalysisIndex(null);
-      refreshUI();
-      return;
-    }
-    const fen = getFenForMoveIndex(index);
-    try {
-      chessRef.current.load(fen);
-    } catch {
-      chessRef.current = new Chess(fen);
-    }
-    setAnalysisIndex(index);
-    refreshUI();
+    return jumpToMoveImpl({
+      index,
+      moveHistory,
+      chessRef,
+      setAnalysisIndex,
+      refreshUI,
+    });
   }
 
   function startReplay(speed = 800) {
-    stopReplayImpl();
-    replayRef.current.playing = true;
-    replayRef.current.speed = speed;
-    let idx = -1;
-    const playNext = () => {
-      idx++;
-      if (idx >= moveHistory.length) {
-        stopReplayImpl();
-        return;
-      }
-      jumpToMove(idx);
-      replayRef.current.timer = setTimeout(
-        playNext,
-        replayRef.current.speed || speed
-      );
-    };
-    playNext();
+    return startReplayImpl({
+      speed,
+      replayRef,
+      moveHistory,
+      jumpToMove,
+    });
   }
 
   function stopReplay() {
@@ -1707,51 +993,15 @@ export default function ChessBoard({
   }
 
   function exportPGN() {
-    const chess = new Chess();
-    moveHistory.forEach((m) => {
-      try {
-        chess.move(m.move);
-      } catch {}
-    });
-    return chess.pgn();
+    return exportPGNImpl(moveHistory);
   }
 
   function copyPGNToClipboard() {
-    const pgn = exportPGN();
-    if (!navigator.clipboard) return;
-    navigator.clipboard.writeText(pgn).then(() => {
-      setStatusMsg("PGN copied to clipboard");
-      setTimeout(() => setStatusMsg(""), 1800);
-    });
+    return copyPGNToClipboardImpl(exportPGN, setStatusMsg);
   }
 
   function capturedPiecesImages() {
-    const initial = {
-      w: { p: 8, r: 2, n: 2, b: 2, q: 1, k: 1 },
-      b: { p: 8, r: 2, n: 2, b: 2, q: 1, k: 1 },
-    };
-    const current = { w: {}, b: {} };
-    const board = chessRef.current.board();
-    board.flat().forEach((cell) => {
-      if (cell) {
-        current[cell.color][cell.type] =
-          (current[cell.color][cell.type] || 0) + 1;
-      }
-    });
-
-    const captured = { w: [], b: [] };
-    Object.keys(initial).forEach((color) => {
-      Object.keys(initial[color]).forEach((t) => {
-        const left = current[color][t] || 0;
-        const capturedCount = initial[color][t] - left;
-        for (let i = 0; i < capturedCount; i++) {
-          if (color === "b")
-            captured.w.push(getPieceImageUrl({ type: t, color: "b" }));
-          else captured.b.push(getPieceImageUrl({ type: t, color: "w" }));
-        }
-      });
-    });
-    return captured;
+    return helperCapturedPiecesImages(chessRef);
   }
 
   // Offer/accept/decline draw logic
@@ -1930,19 +1180,10 @@ export default function ChessBoard({
   const isBlack = gameState.playerColor === "b";
 
   function findKingSquare(color) {
-    const board = chessRef.current.board();
-    for (let r = 0; r < 8; r++) {
-      for (let f = 0; f < 8; f++) {
-        const cell = board[r][f];
-        if (cell && cell.type === "k" && cell.color === color) {
-          return FILES[f] + RANKS[r];
-        }
-      }
-    }
-    return null;
+    return helperFindKingSquare(chessRef, color, FILES, RANKS);
   }
 
-  const inCheck = invokeBoolMethod([
+  const inCheck = invokeBoolMethodLocal([
     "in_check",
     "inCheck",
     "isInCheck",
@@ -1963,6 +1204,7 @@ export default function ChessBoard({
   return (
     <div className={styles.wrapper}>
       {/* Always mount ActiveRoomModal so it can listen for events */}
+      <ActiveRoomModal />
 
       <div className={styles.playContainer}>
         <div
@@ -2052,52 +1294,54 @@ export default function ChessBoard({
           >
             {/* Fullscreen toggle button — placed inside board container */}
 
-            <main className={styles.mainContent}>
-              <div
-                className={`${styles.boardContainer} ${
-                  gameOverState.over ? styles.boardOver : ""
-                }`}
-                style={{
-                  "--board-texture": "url('/texture.jpg')",
-                  "--texture-opacity": 0.05,
-                  "--texture-scale": 1.02,
-                }}
-              >
-                <Board
-                  matrix={matrix}
-                  isBlack={isBlack}
-                  selected={selected}
-                  legalMoves={legalMoves}
-                  legalMovesVerbose={legalMovesVerbose}
-                  lastMove={lastMove}
-                  kingInCheckSquare={kingInCheckSquare}
-                  handleSquareClick={handleSquareClick}
-                  getPieceImageUrl={getPieceImageUrl}
-                  styles={styles}
-                  onPieceDragStart={handlePieceDragStart}
-                  onSquareDrop={handleSquareDrop}
-                />
-              </div>
-
-              <button
-                onClick={toggleFullscreen}
-                aria-label="Toggle fullscreen (F)"
-                title="Toggle fullscreen (F)"
-                className={styles.fullScreenBtn}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="36"
-                  height="36"
-                  fill="#000000"
-                  viewBox="0 0 256 256"
+            <div className={styles.mainContentDiv}>
+              <main className={styles.mainContent}>
+                <div
+                  className={`${styles.boardContainer} ${
+                    gameOverState.over ? styles.boardOver : ""
+                  }`}
+                  style={{
+                    "--board-texture": "url('/texture.jpg')",
+                    "--texture-opacity": 0.05,
+                    "--texture-scale": 1.02,
+                  }}
                 >
-                  <path d="M117.66,138.34a8,8,0,0,1,0,11.32L83.31,184l18.35,18.34A8,8,0,0,1,96,216H48a8,8,0,0,1-8-8V160a8,8,0,0,1,13.66-5.66L72,172.69l34.34-34.35A8,8,0,0,1,117.66,138.34ZM208,40H160a8,8,0,0,0-5.66,13.66L172.69,72l-34.35,34.34a8,8,0,0,0,11.32,11.32L184,83.31l18.34,18.35A8,8,0,0,0,216,96V48A8,8,0,0,0,208,40Z"></path>
-                </svg>
-              </button>
+                  <Board
+                    matrix={matrix}
+                    isBlack={isBlack}
+                    selected={selected}
+                    legalMoves={legalMoves}
+                    legalMovesVerbose={legalMovesVerbose}
+                    lastMove={lastMove}
+                    kingInCheckSquare={kingInCheckSquare}
+                    handleSquareClick={handleSquareClick}
+                    getPieceImageUrl={getPieceImageUrl}
+                    styles={styles}
+                    onPieceDragStart={handlePieceDragStart}
+                    onSquareDrop={handleSquareDrop}
+                  />
+                </div>
 
-              <PlayersPanel players={players} clocks={clocks} />
-            </main>
+                <button
+                  onClick={toggleFullscreen}
+                  aria-label="Toggle fullscreen (F)"
+                  title="Toggle fullscreen (F)"
+                  className={styles.fullScreenBtn}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="36"
+                    height="36"
+                    fill="#000000"
+                    viewBox="0 0 256 256"
+                  >
+                    <path d="M117.66,138.34a8,8,0,0,1,0,11.32L83.31,184l18.35,18.34A8,8,0,0,1,96,216H48a8,8,0,0,1-8-8V160a8,8,0,0,1,13.66-5.66L72,172.69l34.34-34.35A8,8,0,0,1,117.66,138.34ZM208,40H160a8,8,0,0,0-5.66,13.66L172.69,72l-34.35,34.34a8,8,0,0,0,11.32,11.32L184,83.31l18.34,18.35A8,8,0,0,0,216,96V48A8,8,0,0,0,208,40Z"></path>
+                  </svg>
+                </button>
+
+                <PlayersPanel players={players} clocks={clocks} />
+              </main>
+            </div>
 
             {!effectiveHideCaptured && (
               <CapturedPieces
