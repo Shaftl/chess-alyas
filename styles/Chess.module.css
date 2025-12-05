@@ -98,7 +98,7 @@
   pointer-events: auto;
   user-select: none;
   -webkit-user-drag: element; /* hint for some WebKit browsers */
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
   background: transparent;
   z-index: 5;
   touch-action: none; /* helps avoid touch scrolling interfering with touch-drag */

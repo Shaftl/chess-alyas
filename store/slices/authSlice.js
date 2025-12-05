@@ -1,3 +1,4 @@
+// frontend/store/slices/authSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { backendOrigin } from "@/lib/chessUtils";
@@ -6,23 +7,36 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 function ensureAvatarAbsolute(user) {
   if (!user || typeof user !== "object") return user;
-  if (user.avatarUrlAbsolute && String(user.avatarUrlAbsolute).trim()) {
-    return user;
-  }
+  const base = backendOrigin();
+
+  // avatar normalization
   const rel = user.avatarUrl || user.avatar || null;
   if (!rel) {
     user.avatarUrlAbsolute = user.avatarUrlAbsolute || null;
-    return user;
-  }
-  if (/^https?:\/\//i.test(rel)) {
+  } else if (/^https?:\/\//i.test(rel)) {
     user.avatarUrlAbsolute = rel;
     user.avatarUrl = rel;
-    return user;
+  } else {
+    user.avatarUrlAbsolute = `${base.replace(/\/$/, "")}${
+      rel.startsWith("/") ? "" : "/"
+    }${rel}`;
+    user.avatarUrl = rel;
   }
-  const base = backendOrigin();
-  user.avatarUrlAbsolute = `${base.replace(/\/$/, "")}${
-    rel.startsWith("/") ? "" : "/"
-  }${rel}`;
+
+  // background normalization
+  const relBg = user.backgroundUrl || null;
+  if (!relBg) {
+    user.backgroundUrlAbsolute = user.backgroundUrlAbsolute || null;
+  } else if (/^https?:\/\//i.test(relBg)) {
+    user.backgroundUrlAbsolute = relBg;
+    user.backgroundUrl = relBg;
+  } else {
+    user.backgroundUrlAbsolute = `${base.replace(/\/$/, "")}${
+      relBg.startsWith("/") ? "" : "/"
+    }${relBg}`;
+    user.backgroundUrl = relBg;
+  }
+
   return user;
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import styles from "./Header.module.css";
 import AccountDropdown from "./AccountDropdown";
 import Notifications from "./Notifications";
+import BackgroundUploader from "./BackgroundUploader";
 
 export default function Header({ onMenuToggle, isSideNavOpen }) {
   return (
@@ -59,6 +60,7 @@ export default function Header({ onMenuToggle, isSideNavOpen }) {
       <div className={styles.accountSection}>
         <Notifications />
         <AccountDropdown />
+        <BackgroundUploader>Hi</BackgroundUploader>
       </div>
     </header>
   );

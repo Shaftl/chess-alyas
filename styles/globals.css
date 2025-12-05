@@ -1,13 +1,18 @@
-/* frontend/styles/globals.css */
+:root {
+  /* Windows-style background blur system */
+  --bg-image-filter: blur(20px) saturate(1.2) brightness(0.8);
 
+  /* The user or ClientProvider sets this dynamically */
+  --bg-image-url: url("/bg.png");
+}
+
+/* Reset / base */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: "Stack Sans Notch", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-
-  /* font-family: "Montserrat"; */
   font-weight: 300;
 }
 
@@ -16,15 +21,56 @@ html {
   height: 100%;
 }
 
+/*
+  Windows-like background system:
+  --------------------------------------------------------
+  - body::before  = background IMAGE layer (with blur)
+  - body::after   = gradient overlay (NOT blurred)
+  - App content   = normal above everything
+
+  This gives you a clean two-layer system exactly like
+  Windows lockscreen / login screen / settings blur.
+*/
+
 body {
-  height: 100%;
+  position: relative;
+  min-height: 100%;
   color: #fff;
-  background-image: url("/bg.png");
-  /* background-color: rgb(31, 31, 31); */
-  background-size: cover;
-  background-position: center;
+  background-color: rgb(31, 31, 31); /* fallback */
+  overflow-x: hidden;
 }
 
+/* Background IMAGE (blurred) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+
+  /* Dynamically updated by ClientProvider */
+  background-image: var(--bg-image-url);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  /* Professional Windows-like filter */
+  filter: var(--bg-image-filter);
+  transform: scale(1.03); /* subtly zoomed for smoother blur edges */
+  will-change: filter, transform; /* performance optimization */
+}
+
+/* Gradient overlay layer */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  background-image: linear-gradient(to top right, #00000020, #00000041);
+}
+
+/* All your existing styles */
 .dflex {
   display: flex;
   align-items: center;
@@ -48,7 +94,6 @@ body {
 
 ::-webkit-scrollbar {
   width: 0.6rem;
-  /* background: #0000003a; */
 }
 
 ::-webkit-scrollbar-thumb {
