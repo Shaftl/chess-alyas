@@ -2172,7 +2172,6 @@
 //     </div>
 //   );
 // }
-
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -2196,14 +2195,11 @@ import JoinModal from "@/components/chess/JoinModal";
 import Board from "@/components/chess/Board";
 import Sidebar from "@/components/chess/Sidebar";
 import RightPanel from "@/components/chess/RightPanel";
-
 import PromotionModal from "@/components/chess/PromotionModal";
 import DrawModal from "@/components/chess/DrawModal";
 import RematchModal from "@/components/chess/RematchModal";
 import VoicePanel from "@/components/VoicePanel";
-
 import { useRouter } from "next/navigation";
-
 import {
   getPieceImageUrl,
   normalizeAvatarUrlFromAuthUser,
@@ -2212,7 +2208,6 @@ import {
 import PlayersPanel from "./chess/PlayersPanel";
 import Clocks from "./chess/Clocks";
 import CapturedPieces from "./chess/CapturedPieces";
-
 import soundManager from "@/lib/soundManager";
 import ActiveRoomModal from "@/components/ActiveRoomModal";
 
@@ -3316,6 +3311,130 @@ export default function ChessBoard({
     });
   }
 
+  // ==== Play vs Bot helper ====
+  // Add small local UI state to let user choose bot level and color
+  const [botLevel, setBotLevel] = useState(1); // 0..3
+  const [botColor, setBotColor] = useState("random"); // white|black|random
+
+  // Helper: map level -> movetimeMs (simple mapping; backend will also accept level)
+  function mapLevelToMovetimeMs(level) {
+    const lv = Number(level) || 1;
+    switch (lv) {
+      case 0:
+        return 200;
+      case 1:
+        return 600;
+      case 2:
+        return 1200;
+      case 3:
+        return 3000;
+      default:
+        return 800;
+    }
+  }
+
+  async function playVsBot(opts = {}) {
+    const minutes = Number(opts.minutes || createMinutes || 5) || 5;
+    const levelNum =
+      typeof opts.level !== "undefined" ? Number(opts.level) : botLevel;
+    const playAs =
+      opts.playAs ||
+      opts.colorPreference ||
+      botColor ||
+      createColorPref ||
+      "random";
+    const movetimeMs = Number(
+      opts.movetimeMs || mapLevelToMovetimeMs(levelNum)
+    );
+    const engine = opts.engine || "jsengine"; // explicitly request js engine from backend
+
+    setStatusMsg("Creating bot game...");
+
+    try {
+      const endpoint = `${API.replace(/\/$/, "")}/bot/create`;
+      const body = {
+        minutes,
+        playAs,
+        movetimeMs,
+        // pass levelNum as numeric convenience for backend
+        level: levelNum,
+        engine,
+        // optional: friendly name
+        botName: opts.botName || "JS-Engine",
+      };
+
+      // Also include nested 'level' object (backend accepts either shape)
+      body.level = {
+        movetimeMs,
+        levelNum,
+        engine,
+      };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        setStatusMsg(
+          err && err.error
+            ? `Bot create failed: ${err.error}`
+            : "Bot create failed"
+        );
+        return;
+      }
+
+      const data = await res.json();
+      if (!data || !data.roomId) {
+        setStatusMsg("Bot create returned no roomId");
+        return;
+      }
+
+      const rid = data.roomId;
+      // set redux + push URL + emit join event (same flow as confirmJoinRoom)
+      dispatch(setRoomId(rid));
+      lastPushedRoomRef.current = rid;
+      try {
+        router.push(`/play/${encodeURIComponent(rid)}`);
+      } catch (e) {}
+      // emit join-room via socket (reuse same payload pattern)
+      let userToSend = { username: "guest" };
+      if (auth && auth.user) {
+        const authUser = auth.user;
+        const avatar = normalizeAvatarUrlFromAuthUser(authUser);
+        userToSend = {
+          id: authUser.id,
+          username: authUser.username,
+          displayName: authUser.displayName,
+          avatarUrl: avatar,
+        };
+      } else {
+        const storedUser = readUserFromStorage();
+        if (storedUser) {
+          const avatar = normalizeAvatarUrlFromAuthUser(storedUser);
+          userToSend = {
+            id: storedUser.id || storedUser._id,
+            username: storedUser.username,
+            displayName: storedUser.displayName,
+            avatarUrl: avatar,
+          };
+        }
+      }
+      try {
+        socketRef.current?.emit("join-room", { roomId: rid, user: userToSend });
+        setStatusMsg("Joining bot room...");
+      } catch (e) {
+        setStatusMsg("Failed to join bot room via socket");
+      }
+    } catch (err) {
+      setStatusMsg("Network error creating bot room");
+      console.error("playVsBot error:", err);
+    }
+  }
+
   // REMATCH handlers (client-side)
   function sendPlayAgain() {
     const s = socketRef.current;
@@ -3542,6 +3661,99 @@ export default function ChessBoard({
                     <path d="M117.66,138.34a8,8,0,0,1,0,11.32L83.31,184l18.35,18.34A8,8,0,0,1,96,216H48a8,8,0,0,1-8-8V160a8,8,0,0,1,13.66-5.66L72,172.69l34.34-34.35A8,8,0,0,1,117.66,138.34ZM208,40H160a8,8,0,0,0-5.66,13.66L172.69,72l-34.35,34.34a8,8,0,0,0,11.32,11.32L184,83.31l18.34,18.35A8,8,0,0,0,216,96V48A8,8,0,0,0,208,40Z"></path>
                   </svg>
                 </button>
+
+                {/* NEW: Bot controls (time, color, level) */}
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginLeft: 8,
+                  }}
+                >
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <span style={{ fontSize: 12 }}>Time</span>
+                    <select
+                      value={createMinutes}
+                      onChange={(e) => setCreateMinutes(Number(e.target.value))}
+                      style={{
+                        fontSize: 13,
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <option value={1}>1m</option>
+                      <option value={3}>3m</option>
+                      <option value={5}>5m</option>
+                      <option value={10}>10m</option>
+                      <option value={15}>15m</option>
+                    </select>
+                  </label>
+
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <span style={{ fontSize: 12 }}>Color</span>
+                    <select
+                      value={botColor}
+                      onChange={(e) => setBotColor(e.target.value)}
+                      style={{
+                        fontSize: 13,
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <option value="random">Random</option>
+                      <option value="white">White</option>
+                      <option value="black">Black</option>
+                    </select>
+                  </label>
+
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <span style={{ fontSize: 12 }}>Level</span>
+                    <select
+                      value={botLevel}
+                      onChange={(e) => setBotLevel(Number(e.target.value))}
+                      style={{
+                        fontSize: 13,
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <option value={0}>Very Easy</option>
+                      <option value={1}>Easy</option>
+                      <option value={2}>Medium</option>
+                      <option value={3}>Hard</option>
+                    </select>
+                  </label>
+
+                  <button
+                    onClick={() =>
+                      playVsBot({
+                        minutes: createMinutes,
+                        level: botLevel,
+                        playAs: botColor,
+                      })
+                    }
+                    aria-label="Play vs Bot"
+                    title="Play vs Bot"
+                    className={styles.playBotBtn}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: "white",
+                      cursor: "pointer",
+                      fontSize: 13,
+                    }}
+                  >
+                    ▶ Play vs Bot
+                  </button>
+                </div>
 
                 <PlayersPanel players={players} clocks={clocks} />
               </main>

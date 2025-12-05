@@ -44,19 +44,31 @@ export default function Board({
     imgSrc: null,
   });
 
-  // create preview element appended to body
+  // choose where to append preview: prefer fullscreen root when active
+  const previewRoot = () =>
+    (document &&
+      (document.fullscreenElement ||
+        document.msFullscreenElement ||
+        document.webkitFullscreenElement)) ||
+    document.body;
+
+  // create preview element appended to fullscreen root (or body)
   const createPreview = useCallback(
     (src, widthPx, heightPx, startX, startY, offsetX, offsetY) => {
       try {
+        const root = previewRoot() || document.body;
         const layer = document.createElement("div");
+        // ensure consistent classname whether using CSS module or global
         layer.className = (styles && styles.dragLayer) || "dragLayer";
+        // use fixed positioning (works correctly in fullscreen and normal)
         layer.style.position = "fixed";
         layer.style.left = "0";
         layer.style.top = "0";
         layer.style.width = "0";
         layer.style.height = "0";
         layer.style.pointerEvents = "none";
-        layer.style.zIndex = "99999";
+        // very high z-index so it sits above everything (including fullscreen)
+        layer.style.zIndex = "2147483646";
 
         const img = document.createElement("img");
         img.src = src;
@@ -74,7 +86,12 @@ export default function Board({
         img.style.transform = `translate3d(${left}px, ${top}px, 0)`;
 
         layer.appendChild(img);
-        document.body.appendChild(layer);
+        try {
+          root.appendChild(layer);
+        } catch (err) {
+          // fallback to body if append fails
+          document.body.appendChild(layer);
+        }
         return layer;
       } catch (e) {
         return null;
@@ -97,7 +114,8 @@ export default function Board({
       const previewRect = img
         ? img.getBoundingClientRect()
         : { width: 48, height: 48 };
-      // find board container using your boardContainer class (CSS module)
+
+      // find board container using hashed class (CSS module) or by fallback selector
       let boardEl = null;
       try {
         if (styles && styles.boardContainer) {
@@ -111,6 +129,7 @@ export default function Board({
       } catch (err) {
         boardEl = document.body;
       }
+
       const rect = boardEl.getBoundingClientRect();
       // clamp so preview stays within board rectangle
       let left = pX - st.offsetX;
@@ -135,7 +154,7 @@ export default function Board({
       e.preventDefault();
     } catch (e) {}
 
-    // find board container using your boardContainer class (CSS module)
+    // find board container using hashed class (CSS module) or by fallback selector
     let boardEl = null;
     try {
       if (styles && styles.boardContainer) {
