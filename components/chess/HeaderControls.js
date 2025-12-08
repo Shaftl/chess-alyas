@@ -38,6 +38,11 @@ export default function HeaderControls({
   const [onlineStatusMsg, setOnlineStatusMsg] = useState("");
   const [lastMatchInfo, setLastMatchInfo] = useState(null);
 
+  // Play-with-bot state
+  const [botLevel, setBotLevel] = useState(2);
+  const [botCreating, setBotCreating] = useState(false);
+  const [playWithBotMsg, setPlayWithBotMsg] = useState("");
+
   const auth = useSelector((s) => s.auth);
   const router = useRouter();
 
@@ -428,6 +433,118 @@ export default function HeaderControls({
     return normalizeAvatarRaw(candidate);
   }
 
+  // --- NEW: Play with Bot handlers ---
+  async function createRoomWithBot() {
+    try {
+      const ok = await ensureNoActiveRoomBeforeCreate();
+      if (!ok) return;
+      setBotCreating(true);
+      setPlayWithBotMsg("Creating bot game…");
+
+      const s = initSocket();
+      if (!s) {
+        setPlayWithBotMsg("Socket not available");
+        setBotCreating(false);
+        return;
+      }
+
+      // Create a unique bot id so server can detect it (roomManager looks for id starting with 'bot:')
+      const botId = `bot:${Number(botLevel) || 2}-${Date.now()}`;
+
+      // Send create-room request directly to server socket (most server socket handlers accept same options your createRoom prop would)
+      const opts = {
+        minutes: Number(createMinutes) || 5,
+        colorPreference: createColorPref || "random",
+        userB: { id: botId, username: "Bot" },
+        botLevel: Number(botLevel) || 2,
+      };
+
+      // Wait for acknowledgement with roomId (server should emit room-created or similar).
+      // We'll listen once for 'room-created' on our socket to redirect when successful.
+      const onRoomCreated = (payload) => {
+        try {
+          if (payload && payload.ok && payload.roomId) {
+            setPlayWithBotMsg("Bot game started — joining...");
+            // small delay for UX
+            setTimeout(() => {
+              window.location.href = `/play/${encodeURIComponent(
+                payload.roomId
+              )}`;
+            }, 150);
+          } else if (payload && payload.error) {
+            setPlayWithBotMsg(payload.error || "Failed to create bot room");
+            setBotCreating(false);
+          } else {
+            setPlayWithBotMsg("Failed to create bot room");
+            setBotCreating(false);
+          }
+        } catch (e) {
+          setBotCreating(false);
+        } finally {
+          try {
+            s.off("room-created", onRoomCreated);
+          } catch (e) {}
+        }
+      };
+
+      // fallback: some servers reply via 'room-created' event, others via 'create-room-result'
+      const onCreateRoomResult = (payload) => {
+        try {
+          if (payload && payload.ok && payload.roomId) {
+            setPlayWithBotMsg("Bot game started — joining...");
+            setTimeout(() => {
+              window.location.href = `/play/${encodeURIComponent(
+                payload.roomId
+              )}`;
+            }, 150);
+          } else {
+            setPlayWithBotMsg(
+              payload && payload.error ? payload.error : "Failed to create room"
+            );
+            setBotCreating(false);
+          }
+        } catch (e) {
+          setBotCreating(false);
+        } finally {
+          try {
+            s.off("create-room-result", onCreateRoomResult);
+          } catch (e) {}
+        }
+      };
+
+      s.once("room-created", onRoomCreated);
+      s.once("create-room-result", onCreateRoomResult);
+
+      // emit create-room (your server-side socket handlers already understand these options)
+      try {
+        s.emit("create-room", opts);
+      } catch (e) {
+        setPlayWithBotMsg("Failed to send create request");
+        setBotCreating(false);
+        try {
+          s.off("room-created", onRoomCreated);
+          s.off("create-room-result", onCreateRoomResult);
+        } catch (e2) {}
+      }
+
+      // safety: if no response after X seconds, clear state
+      setTimeout(() => {
+        if (botCreating) {
+          setBotCreating(false);
+          setPlayWithBotMsg("");
+          try {
+            s.off("room-created", onRoomCreated);
+            s.off("create-room-result", onCreateRoomResult);
+          } catch (e) {}
+        }
+      }, 8000);
+    } catch (e) {
+      console.error("createRoomWithBot error", e);
+      setBotCreating(false);
+      setPlayWithBotMsg("Failed to create bot room");
+    }
+  }
+
   return (
     <header className={styles.header}>
       <div className={styles.headerControls}>
@@ -606,6 +723,55 @@ export default function HeaderControls({
               </>
             )}
           </button>
+
+          {/* NEW: Play with Bot */}
+          <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+            <select
+              value={botLevel}
+              onChange={(e) => setBotLevel(Number(e.target.value))}
+              className={styles.roomInput}
+              title="Bot strength"
+              style={{ width: 120 }}
+            >
+              <option value={1}>Bot: Easy</option>
+              <option value={2}>Bot: Medium</option>
+              <option value={3}>Bot: Hard</option>
+              <option value={4}>Bot: Very Hard</option>
+            </select>
+
+            <button
+              className={`${styles.btn} ${styles["btn-bot"]}`}
+              onClick={() => createRoomWithBot()}
+              disabled={botCreating}
+              title="Create a private match vs an AI bot"
+            >
+              {botCreating ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2a1 1 0 011 1v1h2a2 2 0 012 2v2h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v2a2 2 0 01-2 2h-2v1a1 1 0 01-1 1h-2a1 1 0 01-1-1v-1H8a2 2 0 01-2-2v-2H5a1 1 0 01-1-1V9a1 1 0 011-1h1V6a2 2 0 012-2h2V3a1 1 0 011-1h2z" />
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2a1 1 0 011 1v1h2a2 2 0 012 2v2h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v2a2 2 0 01-2 2h-2v1a1 1 0 01-1 1h-2a1 1 0 01-1-1v-1H8a2 2 0 01-2-2v-2H5a1 1 0 01-1-1V9a1 1 0 011-1h1V6a2 2 0 012-2h2V3a1 1 0 011-1h2z" />
+                  </svg>
+                  Play with Bot
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Online matchmaking status */}
@@ -625,6 +791,9 @@ export default function HeaderControls({
                 Open
               </button>
             </div>
+          )}
+          {playWithBotMsg && (
+            <div style={{ marginTop: 8 }}>{playWithBotMsg}</div>
           )}
         </div>
       </div>
