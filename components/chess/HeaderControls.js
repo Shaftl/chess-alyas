@@ -725,13 +725,17 @@ export default function HeaderControls({
           </button>
 
           {/* NEW: Play with Bot */}
-          <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+          <div className={styles.headerControlsBox}>
             <select
               value={botLevel}
               onChange={(e) => setBotLevel(Number(e.target.value))}
               className={styles.roomInput}
               title="Bot strength"
-              style={{ width: 120, display: "none" }}
+              style={{
+                width: 120,
+
+                display: "none",
+              }}
             >
               <option value={1}>Bot: Easy</option>
               <option value={2}>Bot: Medium</option>
@@ -740,7 +744,7 @@ export default function HeaderControls({
             </select>
 
             <button
-              className={`${styles.btn} ${styles["btn-bot"]}`}
+              className={`${styles.btn} ${styles["btn-online"]}`}
               onClick={() => createRoomWithBot()}
               disabled={botCreating}
               title="Create a private match vs an AI bot"
@@ -749,11 +753,12 @@ export default function HeaderControls({
                 <>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
+                    width="32"
+                    height="32"
+                    fill="#000000"
+                    viewBox="0 0 256 256"
                   >
-                    <path d="M12 2a1 1 0 011 1v1h2a2 2 0 012 2v2h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v2a2 2 0 01-2 2h-2v1a1 1 0 01-1 1h-2a1 1 0 01-1-1v-1H8a2 2 0 01-2-2v-2H5a1 1 0 01-1-1V9a1 1 0 011-1h1V6a2 2 0 012-2h2V3a1 1 0 011-1h2z" />
+                    <path d="M211.18,196.56,139.57,128l71.61-68.56a1.59,1.59,0,0,1,.13-.13A16,16,0,0,0,200,32H56A16,16,0,0,0,44.69,59.31a1.59,1.59,0,0,1,.13.13L116.43,128,44.82,196.56a1.59,1.59,0,0,1-.13.13A16,16,0,0,0,56,224H200a16,16,0,0,0,11.32-27.31A1.59,1.59,0,0,1,211.18,196.56ZM56,48h0v0ZM158.21,168H97.79L128,139.08ZM200,48l-72,68.92L56,48Z"></path>
                   </svg>
                   Creating...
                 </>
@@ -761,11 +766,12 @@ export default function HeaderControls({
                 <>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
+                    width="32"
+                    height="32"
+                    fill="#000000"
+                    viewBox="0 0 256 256"
                   >
-                    <path d="M12 2a1 1 0 011 1v1h2a2 2 0 012 2v2h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v2a2 2 0 01-2 2h-2v1a1 1 0 01-1 1h-2a1 1 0 01-1-1v-1H8a2 2 0 01-2-2v-2H5a1 1 0 01-1-1V9a1 1 0 011-1h1V6a2 2 0 012-2h2V3a1 1 0 011-1h2z" />
+                    <path d="M200,48H136V16a8,8,0,0,0-16,0V48H56A32,32,0,0,0,24,80V192a32,32,0,0,0,32,32H200a32,32,0,0,0,32-32V80A32,32,0,0,0,200,48ZM172,96a12,12,0,1,1-12,12A12,12,0,0,1,172,96ZM96,184H80a16,16,0,0,1,0-32H96ZM84,120a12,12,0,1,1,12-12A12,12,0,0,1,84,120Zm60,64H112V152h32Zm32,0H160V152h16a16,16,0,0,1,0,32Z"></path>
                   </svg>
                   Play with Bot
                 </>

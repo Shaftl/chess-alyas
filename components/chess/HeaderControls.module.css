@@ -270,3 +270,11 @@
     margin-top: 1.5rem;
   }
 }
+
+.headerControlsBox button {
+  padding: 0.6rem 2.4rem;
+}
+
+.createActions button {
+  padding: 1rem 2.4rem;
+}
