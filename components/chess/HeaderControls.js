@@ -731,7 +731,7 @@ export default function HeaderControls({
               onChange={(e) => setBotLevel(Number(e.target.value))}
               className={styles.roomInput}
               title="Bot strength"
-              style={{ width: 120 }}
+              style={{ width: 120, display: "none" }}
             >
               <option value={1}>Bot: Easy</option>
               <option value={2}>Bot: Medium</option>
