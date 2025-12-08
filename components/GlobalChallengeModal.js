@@ -135,18 +135,7 @@ export default function GlobalChallengeModal() {
               }}
             />
           ) : (
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: "50%",
-                background: "#eee",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 600,
-              }}
-            >
+            <div>
               {(incoming.from?.displayName || incoming.from?.username || "U")
                 .charAt(0)
                 .toUpperCase()}
