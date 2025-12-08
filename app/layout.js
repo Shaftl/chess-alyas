@@ -6,6 +6,7 @@ import InviteModal from "@/components/InviteModal";
 import ActiveRoomModal from "@/components/ActiveRoomModal";
 import GlobalChallengeListener from "@/components/GlobalChallengeListener";
 import GlobalChallengeModal from "@/components/GlobalChallengeModal";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata = {
   title: "Chess Master Online",
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ClientProvider>
+          <SpeedInsights />
           {/* global challenge listener + modal (mounted in client chrome) */}
           <GlobalChallengeListener />
           <GlobalChallengeModal />
