@@ -1,3 +1,4 @@
+// frontend/components/AccountDropdown.jsx
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -5,6 +6,7 @@ import { logoutUser } from "@/store/slices/authSlice";
 import { useRouter } from "next/navigation";
 import styles from "./AccountDropdown.module.css";
 import BackgroundUploader from "./BackgroundUploader";
+import { disconnectSocket } from "@/lib/socketClient"; // <<-- ADDED
 
 /**
  * AccountDropdown
@@ -99,7 +101,15 @@ export default function AccountDropdown() {
     } catch (err) {
       // ignore — we still redirect/clear UI
     } finally {
+      // ensure socket is disconnected so server receives the disconnect
+      try {
+        disconnectSocket();
+      } catch (e) {
+        console.warn("disconnectSocket failed during logout:", e);
+      }
+
       setBusy(false);
+      setOpen(false);
       // ensure client navigates to login
       router.push("/auth/login");
     }

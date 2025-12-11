@@ -1,7 +1,8 @@
+// frontend/app/players/PlayersPage.jsx
 "use client";
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import axios from "axios";
-import { initSocket } from "@/lib/socketClient";
+import { initSocket, getSocket } from "@/lib/socketClient";
 import styles from "./Players.module.css";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -25,7 +26,6 @@ function resolveAvatarFrom(candidate) {
     if (/^https?:\/\//i.test(candidate)) return candidate;
     return `${backendOrigin}${candidate}`;
   }
-  // support nested objects like { avatarUrl, avatarUrlAbsolute }
   const alt =
     candidate.avatarUrlAbsolute ||
     candidate.avatarUrl ||
@@ -40,7 +40,7 @@ function resolveAvatarFrom(candidate) {
 export default function PlayersPage() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
   const [incomingChallenge, setIncomingChallenge] = useState(null);
   const [challengeModal, setChallengeModal] = useState({
     open: false,
@@ -58,8 +58,7 @@ export default function PlayersPage() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [meLoaded, setMeLoaded] = useState(false);
 
-  // **NEW**: store the signed-in user's profile separately so it remains available
-  // even when `players` is filtered by search.
+  // signed-in user's profile
   const [myProfile, setMyProfile] = useState(null);
 
   // optimistic pending set while REST or socket call is in-flight
@@ -79,14 +78,13 @@ export default function PlayersPage() {
         setCurrentUserId(null);
       }
     } catch (err) {
-      // not logged in / token invalid -> keep null
       setCurrentUserId(null);
     } finally {
       setMeLoaded(true);
     }
   };
 
-  // **NEW**: fetch current user's profile by id (GET /api/players/:id)
+  // fetch current user's profile by id (GET /api/players/:id)
   const fetchMyProfile = async (id) => {
     if (!id) {
       setMyProfile(null);
@@ -96,13 +94,19 @@ export default function PlayersPage() {
       const res = await axios.get(`${PLAYERS_URL}/${encodeURIComponent(id)}`, {
         withCredentials: true,
       });
-      // server returns a single user object for /players/:id
       const raw = res.data || null;
       if (raw) {
-        const avatar = resolveAvatarFrom(
-          raw.avatarUrlAbsolute || raw.avatarUrl || raw.avatar
-        );
-        setMyProfile({ ...raw, avatarUrlAbsolute: avatar });
+        const avatar =
+          raw.avatarUrlAbsolute ||
+          raw.avatarUrl ||
+          raw.avatar ||
+          (raw.user && (raw.user.avatarUrlAbsolute || raw.user.avatarUrl)) ||
+          null;
+        const avatarUrlAbsolute =
+          avatar && !/^https?:\/\//i.test(avatar)
+            ? `${backendOrigin}${avatar}`
+            : avatar;
+        setMyProfile({ ...raw, avatarUrlAbsolute });
       } else {
         setMyProfile(null);
       }
@@ -113,7 +117,6 @@ export default function PlayersPage() {
   };
 
   // fetch players
-  // accepts optional q string — if omitted, uses current searchQuery state
   const fetchPlayers = async (q) => {
     const query = typeof q === "string" ? q : searchQuery;
     setLoading(true);
@@ -127,7 +130,6 @@ export default function PlayersPage() {
       });
       const playersArr = Array.isArray(res.data) ? res.data : [];
 
-      // normalize avatar fields for frontend use only (do not change server)
       const normalized = playersArr.map((p) => {
         const avatar =
           p.avatarUrlAbsolute ||
@@ -170,7 +172,10 @@ export default function PlayersPage() {
         await fetchPlayers();
       }
     })();
+
+    // keep polling players list every 12s (keeps UI in sync even if server misses a presence event)
     const id = setInterval(fetchPlayers, 12000);
+
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -191,7 +196,6 @@ export default function PlayersPage() {
   // when searchQuery changes we debounce and refresh the list
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    // small debounce so typing doesn't hammer backend
     searchDebounceRef.current = setTimeout(() => {
       fetchPlayers(searchQuery);
     }, 400);
@@ -201,17 +205,33 @@ export default function PlayersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
+  // socket & realtime listeners (defensive)
   useEffect(() => {
+    // use singleton init
     const s = initSocket();
-    setSocket(s);
+    socketRef.current = s;
 
+    // defensive: ensure we don't double-register handlers by first removing them
+    try {
+      s.off && s.off("connect");
+      s.off && s.off("presence-changed");
+      s.off && s.off("challenge-received");
+      s.off && s.off("challenge-sent");
+      s.off && s.off("challenge-declined");
+      s.off && s.off("challenge-accepted");
+      s.off && s.off("friend-request-received");
+      s.off && s.off("friend-request-accepted");
+      s.off && s.off("friend-request-declined");
+      s.off && s.off("friend-removed");
+    } catch (e) {}
+
+    // connect handler -> refresh players
     s.on("connect", () => {
       fetchPlayers();
     });
 
     // presence event: refresh players when someone goes online/offline
     s.on("presence-changed", (payload) => {
-      // payload: { userId, online, sockets }
       fetchPlayers();
     });
 
@@ -233,14 +253,11 @@ export default function PlayersPage() {
 
     // friend real-time events
     s.on("friend-request-received", (payload) => {
-      // another user sent current user a request -> refresh players
       fetchPlayers();
     });
 
     s.on("friend-request-accepted", (payload) => {
-      // payload: { reqId, by: { id, username } }
       fetchPlayers();
-      // remove optimistic pending entry if present
       try {
         const byId = payload?.by?.id;
         if (byId) {
@@ -256,7 +273,6 @@ export default function PlayersPage() {
     });
 
     s.on("friend-request-declined", (payload) => {
-      // payload: { reqId, by: { id, username } }
       fetchPlayers();
       try {
         const byId = payload?.by?.id;
@@ -272,30 +288,46 @@ export default function PlayersPage() {
         alert(`Friend request declined by ${payload.by.username}`);
     });
 
-    // when someone unfriends you (or you unfriended them and they need update)
     s.on("friend-removed", (payload) => {
-      // payload: { by: { id, username }, targetId }
       fetchPlayers();
     });
 
-    return () => {
+    // when leaving the page, try to force a refresh to get accurate presence for next visits
+    const onPageHide = () => {
       try {
-        s.off("connect");
-        s.off("presence-changed");
-        s.off("challenge-received");
-        s.off("challenge-sent");
-        s.off("challenge-declined");
-        s.off("challenge-accepted");
-        s.off("friend-request-received");
-        s.off("friend-request-accepted");
-        s.off("friend-request-declined");
-        s.off("friend-removed");
-      } catch {}
+        // best-effort fetch that uses keepalive (may help server record last-seen via REST)
+        if (navigator && navigator.sendBeacon) {
+          try {
+            // it's okay if this endpoint doesn't exist; this is best-effort
+            const url = `${API_PREFIX}/presence/poke`;
+            const body = JSON.stringify({ ts: Date.now() });
+            navigator.sendBeacon(url, body);
+          } catch (e) {}
+        }
+      } catch (e) {}
+    };
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      // cleanup listeners
+      try {
+        s.off && s.off("connect");
+        s.off && s.off("presence-changed");
+        s.off && s.off("challenge-received");
+        s.off && s.off("challenge-sent");
+        s.off && s.off("challenge-declined");
+        s.off && s.off("challenge-accepted");
+        s.off && s.off("friend-request-received");
+        s.off && s.off("friend-request-accepted");
+        s.off && s.off("friend-request-declined");
+        s.off && s.off("friend-removed");
+      } catch (e) {}
+      window.removeEventListener("pagehide", onPageHide);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // sorting & derived sets (unchanged logic but using cookie-based currentUserId)
+  // sorting & derived sets
   const sortedPlayers = useMemo(() => {
     if (!players || players.length === 0) return [];
     const curId = currentUserId;
@@ -337,9 +369,10 @@ export default function PlayersPage() {
     });
   }
   function sendChallenge() {
-    if (!socket) return;
+    const s = socketRef.current || getSocket();
+    if (!s) return;
     const { target, minutes, color } = challengeModal;
-    socket.emit("challenge", {
+    s.emit("challenge", {
       toUserId: target.id,
       minutes,
       colorPreference: color,
@@ -347,15 +380,17 @@ export default function PlayersPage() {
     closeChallengeModal();
   }
   function acceptIncomingChallenge() {
-    if (!socket || !incomingChallenge) return;
-    socket.emit("accept-challenge", {
+    const s = socketRef.current || getSocket();
+    if (!s || !incomingChallenge) return;
+    s.emit("accept-challenge", {
       challengeId: incomingChallenge.challengeId,
     });
     setIncomingChallenge(null);
   }
   function declineIncomingChallenge() {
-    if (!socket || !incomingChallenge) return;
-    socket.emit("decline-challenge", {
+    const s = socketRef.current || getSocket();
+    if (!s || !incomingChallenge) return;
+    s.emit("decline-challenge", {
       challengeId: incomingChallenge.challengeId,
     });
     setIncomingChallenge(null);
@@ -396,19 +431,17 @@ export default function PlayersPage() {
     if (effectivePendingSentSet.has(String(toUserId)))
       return alert("Friend request already pending");
 
-    // optimistic add immediately
     setPendingOptimistic((prev) => {
       const next = new Set(prev);
       next.add(String(toUserId));
       return next;
     });
 
-    // If socket connected prefer socket path for realtime
-    if (socket && socket.connected) {
+    const s = socketRef.current || getSocket();
+    if (s && s.connected) {
       try {
-        socket.emit("send-friend-request", { toUserId }, (resp) => {
+        s.emit("send-friend-request", { toUserId }, (resp) => {
           if (!resp || !resp.ok) {
-            // show error and remove optimistic
             alert(`Failed: ${resp?.error || "unknown"}`);
             setPendingOptimistic((prev) => {
               const next = new Set(prev);
@@ -417,7 +450,6 @@ export default function PlayersPage() {
             });
             return;
           }
-          // success -> server should notify recipient and we'll refresh players
           fetchPlayers();
         });
       } catch (err) {
@@ -430,7 +462,6 @@ export default function PlayersPage() {
         alert("Friend request failed (socket)");
       }
     } else {
-      // fallback REST
       try {
         const resp = await axios.post(
           FRIENDS_REQUEST_URL,
@@ -438,7 +469,6 @@ export default function PlayersPage() {
           { withCredentials: true }
         );
         if (resp.data && resp.data.ok) {
-          // backend may notify; refresh players
           await fetchPlayers();
         } else {
           alert(`Failed: ${resp.data?.error || "unknown"}`);
@@ -475,12 +505,10 @@ export default function PlayersPage() {
       if (resp.data && resp.data.ok) {
         alert("Removed friend");
         await fetchPlayers();
-        // notify server via socket so other user's clients update in realtime
-        if (socket && socket.connected) {
+        const s = socketRef.current || getSocket();
+        if (s && s.connected) {
           try {
-            socket.emit("remove-friend", { targetId }, (ack) => {
-              // ack optional
-            });
+            s.emit("remove-friend", { targetId }, (ack) => {});
           } catch (e) {}
         }
       } else {
@@ -493,16 +521,12 @@ export default function PlayersPage() {
   }
 
   // UI helpers
-  // **CHANGE**: prefer myProfile (always fetched for signed-in user), fallback to searching players list
   const currentUserEntry =
     myProfile || players.find((p) => String(p.id) === String(currentUserId));
-
   const friendsCount = currentUserEntry?.friends?.length || 0;
   const friendIdsSet = new Set(
     (currentUserEntry?.friends || []).map((f) => String(f.id))
   );
-
-  // exclude self from both lists and keep original sorting
   const friendsList = sortedPlayers.filter(
     (p) =>
       friendIdsSet.has(String(p.id)) && String(p.id) !== String(currentUserId)
@@ -522,7 +546,6 @@ export default function PlayersPage() {
     window.location.href = `/player/${encodeURIComponent(p.id)}`;
   }
 
-  // waiting UI until we checked cookie session & initial players loaded
   if (!meLoaded) {
     return <div className={styles.loading}>Checking session…</div>;
   }
