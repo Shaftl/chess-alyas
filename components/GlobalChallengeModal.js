@@ -7,12 +7,11 @@ import {
   clearIncomingChallenge,
   setIncomingChallenge,
 } from "@/store/slices/challengeSlice";
-import styles from "./GlobalChallengeModal.module.css"; // optional: create minimal css or reuse existing module
+import styles from "./GlobalChallengeModal.module.css";
 
-// Helper to resolve relative avatar path to absolute (mirrors your players/friends logic)
+// Helper to resolve relative avatar path to absolute
 function resolveAvatarFrom(candidate) {
   if (!candidate) return null;
-  // candidate may be a string (url or path) or object { avatarUrl, avatarUrlAbsolute }
   const RAW_API = (
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
   ).replace(/\/$/, "");
@@ -42,9 +41,9 @@ export default function GlobalChallengeModal() {
 
   const avatarUrl = useMemo(() => {
     if (!incoming) return null;
-    return resolveAvatarFrom(
-      incoming.from || incoming.fromAvatar || incoming.fromAvatarUrl || null
-    );
+    const avatarSource =
+      incoming.from || incoming.fromAvatar || incoming.fromAvatarUrl || null;
+    return resolveAvatarFrom(avatarSource);
   }, [incoming]);
 
   if (!incoming) return null;
@@ -57,9 +56,7 @@ export default function GlobalChallengeModal() {
         "accept-challenge",
         { challengeId: incoming.challengeId },
         (ack) => {
-          // server may respond with { ok, roomId, redirectPath }
           if (ack && ack.ok && ack.roomId) {
-            // redirect user into room
             const path =
               (ack.redirectPath || "/play") +
               `/${encodeURIComponent(ack.roomId)}`;
@@ -90,83 +87,56 @@ export default function GlobalChallengeModal() {
     }
   }
 
+  const displayName =
+    incoming.from?.displayName || incoming.from?.username || "Player";
+
   return (
-    <div
-      className={styles.modalOverlay}
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1200,
-      }}
-    >
-      <div
-        className={styles.modalBox}
-        style={{
-          width: 420,
-          maxWidth: "95%",
-          padding: 18,
-          borderRadius: 10,
-          background: "#fff",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 8,
-          }}
-        >
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalBox}>
+        <div className={styles.modalHeader}>
           {avatarUrl ? (
             <img
               src={avatarUrl}
-              alt={`${incoming.from?.username || "player"} avatar`}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: "50%",
-                objectFit: "cover",
+              alt={`${displayName} avatar`}
+              className={styles.avatar}
+              onError={(e) => {
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "flex";
               }}
             />
-          ) : (
-            <div>
-              {(incoming.from?.displayName || incoming.from?.username || "U")
-                .charAt(0)
-                .toUpperCase()}
+          ) : null}
+          {!avatarUrl && (
+            <div className={styles.avatarPlaceholder}>
+              {displayName.charAt(0).toUpperCase()}
             </div>
           )}
+          <h3 className={styles.modalTitle}>Challenge from {displayName}</h3>
+        </div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>
-              Challenge from{" "}
-              {incoming.from?.displayName || incoming.from?.username}
-            </div>
-            <div style={{ fontSize: 13, color: "#555" }}>
-              {incoming.minutes} min • {incoming.colorPreference || "random"}
-            </div>
+        <div className={styles.challengeDetails}>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Time:</span>
+            <span className={styles.detailValue}>
+              {incoming.minutes} minutes
+            </span>
+          </div>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Color:</span>
+            <span className={styles.detailValue}>
+              {incoming.colorPreference || "random"}
+            </span>
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button
-            className={styles.btn}
-            onClick={decline}
-            style={{ padding: "8px 12px" }}
-          >
-            Decline
-          </button>
+        <div className={styles.modalActions}>
           <button
             className={`${styles.btn} ${styles.primary}`}
             onClick={accept}
-            style={{ padding: "8px 12px" }}
           >
-            Accept
+            Accept Challenge
+          </button>
+          <button className={styles.btn} onClick={decline}>
+            Decline
           </button>
         </div>
       </div>

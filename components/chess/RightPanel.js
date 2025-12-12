@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import ChatPanel from "@/components/ChatPanel";
 import styles from "./RightPanel.module.css";
@@ -34,10 +34,26 @@ export default function RightPanel({
   API,
   hideRightChat,
   children,
+  playingWithBot = false,
 }) {
   const [whichTabIsOpen, setWhichTabIsOpen] = useState(
-    `${hideRightChat ? "new-game" : "chats"}`
+    `${hideRightChat || playingWithBot ? "new-game" : "chats"}`
   );
+
+  useEffect(() => {
+    if (playingWithBot || hideRightChat) {
+      setWhichTabIsOpen("new-game");
+    } else {
+      setWhichTabIsOpen((prev) => (prev === "new-game" ? "chats" : prev));
+    }
+  }, [hideRightChat, playingWithBot]);
+
+  // Decide label: when playingWithBot we always want "New Game"
+  const newGameLabel = playingWithBot
+    ? "New Game"
+    : hideRightChat
+    ? "Play Chess"
+    : "New Game";
 
   return (
     <aside className={styles.rightPanel}>
@@ -74,7 +90,7 @@ export default function RightPanel({
               whichTabIsOpen === "new-game" ? styles.activeTab : ""
             } ${styles.btn}`}
           >
-            {hideRightChat ? "Play Chess" : "New Game"}
+            {newGameLabel}
           </button>
         </div>
 

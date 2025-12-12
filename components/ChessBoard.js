@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import { Chess } from "chess.js";
 import { initSocket } from "@/lib/socketClient";
 import styles from "@/styles/Chess.module.css";
@@ -948,6 +954,27 @@ export default function ChessBoard({
   }, [gameState.moves]);
 
   /* useClockEffect: moves the clock/clocks effect logic to a separate hook */
+  // Detect playingWithBot from players list (heuristic).
+  const playingWithBot = useMemo(() => {
+    if (!players || !players.length) return false;
+    return players.some((p) => {
+      if (!p) return false;
+      const username = (p.username || p.displayName || p.name || "")
+        .toString()
+        .toLowerCase();
+      if (username.includes("bot")) return true;
+      if (p.isBot) return true;
+      if (
+        String(p.id || p.userId || "")
+          .toLowerCase()
+          .includes("bot")
+      )
+        return true;
+      if (p.type && String(p.type).toLowerCase() === "bot") return true;
+      return false;
+    });
+  }, [players]);
+
   useClockEffect({
     clocks,
     prevClocksRef,
@@ -962,6 +989,7 @@ export default function ChessBoard({
     stopReplayImpl,
     socketRef,
     gameState,
+    playingWithBot,
   });
 
   // Replay & export helpers (delegated to replayUtils)
@@ -1227,7 +1255,9 @@ export default function ChessBoard({
 
   // when fullscreen, hide sidebars/chat - user requested board-only fullscreen
   const effectiveHideSidebar = hideSidebar || isFullscreen;
-  const effectiveHideRightChat = hideRightChat || isFullscreen;
+  // In bot mode we hide chat & live talk tabs — RightPanel will still render New Game.
+  const effectiveHideRightChat =
+    hideRightChat || isFullscreen || playingWithBot;
   const effectiveHideCaptured = hideCaptured || isFullscreen;
 
   return (
@@ -1238,7 +1268,7 @@ export default function ChessBoard({
       <div className={styles.playContainer}>
         <div
           className={`${styles.mainLayout} ${
-            effectiveHideRightChat ? styles.mainLayoutHide : ""
+            effectiveHideSidebar ? styles.mainLayoutHide : ""
           } ${isFullscreen ? styles.fullscreenActive || "" : ""}`}
         >
           {!effectiveHideSidebar && (
@@ -1368,7 +1398,11 @@ export default function ChessBoard({
                   </svg>
                 </button>
 
-                <PlayersPanel players={players} clocks={clocks} />
+                <PlayersPanel
+                  players={players}
+                  clocks={clocks}
+                  playingWithBot={playingWithBot}
+                />
               </main>
             </div>
 
@@ -1401,7 +1435,8 @@ export default function ChessBoard({
             confirmJoinRoom={confirmJoinRoom}
             API={API}
             readOnlyChat={spectatorOnly}
-            hideRightChat={hideRightChat}
+            hideRightChat={effectiveHideRightChat}
+            playingWithBot={playingWithBot}
           >
             <VoicePanel
               socketRef={socketRef}

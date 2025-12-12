@@ -113,6 +113,7 @@ function formatMsLocal(ms) {
 export default function PlayersPanel({
   players = [],
   clocks = { w: null, b: null, running: null },
+  playingWithBot = false,
 }) {
   const auth = useSelector((s) => s.auth);
   const gamePlayerColor = useSelector((s) => s.game?.playerColor) || null;
@@ -379,6 +380,8 @@ export default function PlayersPanel({
 
   // Clock display
   const ClockDisplay = ({ color, ms }) => {
+    // If bot-mode requested, do not show clocks at all
+    if (playingWithBot) return null;
     const isActive =
       clocks && clocks.running && String(clocks.running) === String(color);
     const displayLabel = color === "w" ? "White" : color === "b" ? "Black" : "";
@@ -481,33 +484,36 @@ export default function PlayersPanel({
           </div>
         )}
 
-        <div className={`${styles.clockMeta}`}>
-          <div className={`${styles.playerMeta} `}>
-            <ClockDisplay
-              color={topPlayer?.color}
-              ms={clockForColor(topPlayer?.color)}
-            />
-          </div>
+        {/* MIDDLE: clocks (hidden entirely in bot mode) */}
+        {!playingWithBot && (
+          <div className={`${styles.clockMeta}`}>
+            <div className={`${styles.playerMeta} `}>
+              <ClockDisplay
+                color={topPlayer?.color}
+                ms={clockForColor(topPlayer?.color)}
+              />
+            </div>
 
-          <div className={styles.devider}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="#000000"
-              viewBox="0 0 256 256"
-            >
-              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm56,112H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48a8,8,0,0,1,0,16Z"></path>
-            </svg>
-          </div>
+            <div className={styles.devider}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="36"
+                height="36"
+                fill="#000000"
+                viewBox="0 0 256 256"
+              >
+                <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm56,112H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48a8,8,0,0,1,0,16Z"></path>
+              </svg>
+            </div>
 
-          <div className={`${styles.playerMeta}`}>
-            <ClockDisplay
-              color={myPlayer?.color}
-              ms={clockForColor(myPlayer?.color)}
-            />
+            <div className={`${styles.playerMeta}`}>
+              <ClockDisplay
+                color={myPlayer?.color}
+                ms={clockForColor(myPlayer?.color)}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* BOTTOM: current player (you) */}
         {myPlayer ? (
@@ -566,10 +572,12 @@ export default function PlayersPanel({
                     {renderFlag(bottomPlayer.user, 18)}
                   </span>
                 )}
-                <ClockDisplay
-                  color={bottomPlayer.color}
-                  ms={clockForColor(bottomPlayer.color)}
-                />
+                {!playingWithBot && (
+                  <ClockDisplay
+                    color={bottomPlayer.color}
+                    ms={clockForColor(bottomPlayer.color)}
+                  />
+                )}
               </div>
 
               <div className={styles.playerSub}>
