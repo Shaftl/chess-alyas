@@ -15,6 +15,9 @@ const BACKEND_BASE =
     process.env.NEXT_PUBLIC_BACKEND_BASE_URL.replace(/\/$/, "")) ||
   API.replace(/\/api\/?$/, "");
 
+const DEFAULT_AVATAR =
+  "https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif";
+
 /* ---------- NEW: normalize backend/url -> rewrite localhost to production base
    Preserves absolute external URLs (CDN) but rewrites dev hostnames to BACKEND_BASE.
 */
@@ -251,35 +254,48 @@ export default function PlayersPanel({
 
   const myDisplayUser = myAuthUserLocal || auth?.user || myPlayer?.user || null;
 
+  const handleImgError = (e) => {
+    try {
+      const el = e?.target;
+      if (!el) return;
+      // if the broken image is already the default, hide it,
+      // otherwise replace it with the default avatar
+      if (el.src && el.src.indexOf(DEFAULT_AVATAR) === -1) {
+        el.onerror = null;
+        el.src = DEFAULT_AVATAR;
+      } else {
+        el.style.display = "none";
+      }
+    } catch (err) {
+      /* ignore */
+    }
+  };
+
   const renderAvatar = (user, size = 48) => {
     const src = avatarForUser(user);
     const sizeClass =
       size === 64 ? styles.size64 : size === 36 ? styles.size36 : styles.size48;
 
+    // If user provided a src, show it and fallback to DEFAULT_AVATAR on error.
     if (src) {
       return (
         <img
           src={src}
           alt={user?.displayName || "avatar"}
           className={`${styles.avatarImg} ${sizeClass}`}
+          onError={handleImgError}
         />
       );
     }
 
+    // No src: show default image (this replaces the previous SVG fallback)
     return (
-      <div className={`${styles.avatarFallback} ${sizeClass}`} aria-hidden>
-        <svg
-          viewBox="0 0 24 24"
-          className={styles.fallbackSvg}
-          role="img"
-          aria-hidden
-        >
-          <path
-            fill="currentColor"
-            d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-5 0-8 3-8 5v1h16v-1c0-2-3-5-8-5z"
-          />
-        </svg>
-      </div>
+      <img
+        src={DEFAULT_AVATAR}
+        alt={user?.displayName || "avatar"}
+        className={`${styles.avatarImg} ${sizeClass} ${styles.avatarImgUF}`}
+        onError={handleImgError}
+      />
     );
   };
 
