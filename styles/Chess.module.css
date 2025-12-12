@@ -783,7 +783,7 @@
     height: min(300px, 72vh) !important;
   }
 }
-@media (max-width: 350px) {
+@media (max-width: 500px) {
   .boardContainer {
     /* slightly reduced from 640 -> 600 for a modest, professional shrink */
     width: min(260px, 72vh) !important;
