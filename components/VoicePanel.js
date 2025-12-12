@@ -228,6 +228,7 @@ export default function VoicePanel({
   } catch (e) {}
 
   /* ---------------- socket wiring unchanged ---------------- */
+  /* ---------------- socket wiring (patched: defensive checks + logs) ---------------- */
   useEffect(() => {
     isMounted.current = true;
     const s = socketRef?.current;
@@ -235,8 +236,12 @@ export default function VoicePanel({
 
     const onOffer = async ({ fromSocketId, offer, fromUser = null }) => {
       try {
+        // Defensive: ignore offers coming from ourselves
+        if (fromSocketId === socketRef.current?.id) return;
+        // If we already have a PeerConnection for a different socket, we still show incoming invite
         setIncomingCall({ fromSocketId, offer, fromUser });
         setStatus("incoming");
+        console.debug("[webrtc] received offer from", fromSocketId);
       } catch (e) {
         console.error("webrtc onOffer error", e);
       }
@@ -244,8 +249,49 @@ export default function VoicePanel({
 
     const onAnswer = async ({ fromSocketId, answer }) => {
       try {
-        if (!pcRef.current) return;
-        await pcRef.current.setRemoteDescription(answer);
+        // Defensive: only accept answer if pcRef matches the expected target
+        const pc = pcRef.current;
+        if (!pc) {
+          console.warn(
+            "[webrtc] received answer but no pc exists, ignoring",
+            fromSocketId
+          );
+          return;
+        }
+        // check the answer came from the socket we targeted when creating the offer
+        if (
+          typeof pc._targetSocketId !== "undefined" &&
+          fromSocketId !== pc._targetSocketId
+        ) {
+          console.warn(
+            "[webrtc] ignoring answer from",
+            fromSocketId,
+            "— expected",
+            pc._targetSocketId
+          );
+          return;
+        }
+
+        // Make sure the PC is in a proper state to accept answer
+        // valid state to call setRemoteDescription for an answer is "have-local-offer"
+        const sig =
+          pc.signalingState ||
+          (pc.connectionState ? pc.connectionState : "unknown");
+        if (
+          !/have-local-offer|have-remote-offer/i.test(sig) &&
+          sig !== "have-local-offer"
+        ) {
+          // On some browsers signalingState names vary — log and attempt only if state ok
+          console.warn(
+            "[webrtc] pc in signalingState",
+            sig,
+            "— setRemoteDescription skipped"
+          );
+          return;
+        }
+
+        console.debug("[webrtc] applying remote answer from", fromSocketId);
+        await pc.setRemoteDescription(answer);
         setStatus("connected");
       } catch (e) {
         console.error("webrtc onAnswer error", e);
@@ -254,16 +300,46 @@ export default function VoicePanel({
 
     const onIce = async ({ fromSocketId, candidate }) => {
       try {
-        if (!candidate || !pcRef.current) return;
-        await pcRef.current.addIceCandidate(candidate).catch(() => {});
+        if (!candidate) return;
+        const pc = pcRef.current;
+        if (!pc) {
+          console.warn(
+            "[webrtc] received ICE candidate but no pc exists, ignoring"
+          );
+          return;
+        }
+        // accept ICE from expected peer only (defensive)
+        if (
+          typeof pc._targetSocketId !== "undefined" &&
+          fromSocketId !== pc._targetSocketId
+        ) {
+          // still allow, but warn
+          console.warn(
+            "[webrtc] ignoring ICE from",
+            fromSocketId,
+            "— expected",
+            pc._targetSocketId
+          );
+          return;
+        }
+        await pc.addIceCandidate(candidate).catch((err) => {
+          // many browsers throw if candidate is null/early; ignore
+          console.warn("addIceCandidate warning:", err);
+        });
       } catch (e) {
         console.error("webrtc onIce error", e);
       }
     };
 
     const onHangup = ({ fromSocketId }) => {
-      hangup(false);
-      setStatus("idle");
+      try {
+        // If hangup comes from a different device, still run hangup to be safe
+        hangup(false);
+        setStatus("idle");
+        console.debug("[webrtc] hangup from", fromSocketId);
+      } catch (e) {
+        console.error("webrtc onHangup error", e);
+      }
     };
 
     s.on("webrtc-offer", onOffer);
