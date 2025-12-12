@@ -500,3 +500,13 @@
     height: 1.8rem;
   }
 }
+
+@media (max-width: 480px) {
+  .badge {
+    top: 0rem;
+    right: 0rem;
+    font-size: 0.8rem;
+    width: 1rem !important;
+    height: 1.6rem !important;
+  }
+}

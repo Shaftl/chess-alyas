@@ -283,3 +283,58 @@
     width: 100%;
   }
 }
+
+@media (max-width: 300px) {
+  .card {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .devider {
+    width: 0px !important;
+    /* height: 100px !important; */
+    z-index: 100;
+  }
+
+  .clockMeta {
+    flex-direction: row;
+    /* background-color: red; */
+    align-items: center;
+    padding: 1rem 1.4rem;
+  }
+
+  .card {
+    align-items: start !important;
+  }
+
+  .clockText {
+    font-size: 1.4rem;
+  }
+
+  .avatarImg {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  .container {
+    height: auto;
+    width: 100%;
+  }
+
+  .onlineDot {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .nameText {
+    font-size: 1.1rem;
+  }
+
+  .playerName {
+    font-size: 1.1rem;
+  }
+
+  .cupsBadge {
+    font-size: 1rem;
+  }
+}

@@ -33,6 +33,17 @@ function resolveAvatarFrom(candidate) {
   return `${backendOrigin}${alt}`;
 }
 
+function flagUrlForCountry(countryCode, size = 20) {
+  if (!countryCode) return null;
+  try {
+    return `https://flagcdn.com/w${size}/${String(
+      countryCode
+    ).toLowerCase()}.png`;
+  } catch {
+    return null;
+  }
+}
+
 export default function FriendsPageWrapper() {
   return (
     <ProtectedRoute>
@@ -159,7 +170,7 @@ function FriendsPage() {
       const res = await axios.get(`${API_PREFIX}/friends`, {
         withCredentials: true,
       });
-      // normalize avatar fields client-side
+      // normalize avatar fields client-side and enrich with flag info
       const arr = Array.isArray(res.data) ? res.data : [];
       const normalized = arr.map((f) => {
         const avatar =
@@ -171,7 +182,13 @@ function FriendsPage() {
           avatar && !/^https?:\/\//i.test(avatar)
             ? `${backendOrigin}${avatar}`
             : avatar;
-        return { ...f, avatarUrlAbsolute };
+
+        // add flagUrl and countryName (frontend-only) — prefer existing flagUrl if backend provided
+        const flagUrl =
+          f.flagUrl || (f.country ? flagUrlForCountry(f.country, 20) : null);
+        const countryName = f.countryName || f.country || null;
+
+        return { ...f, avatarUrlAbsolute, flagUrl, countryName };
       });
       setFriends(normalized);
     } catch (err) {
@@ -189,7 +206,7 @@ function FriendsPage() {
         }
       );
       const arr = Array.isArray(res.data) ? res.data : [];
-      // try to normalize "from" avatar fields if present on the request
+      // try to normalize "from" avatar fields if present on the request and enrich with flag info
       const normalized = arr.map((req) => {
         // check various possible fields
         let fromAvatar =
@@ -205,8 +222,22 @@ function FriendsPage() {
             ? fromAvatar
             : `${backendOrigin}${fromAvatar}`;
         }
+
+        // flag enrichment for the request sender (frontend-only)
+        const fromCountry = req.from?.country || req.fromCountry || null;
+        const fromFlagUrl =
+          req.fromFlagUrl ||
+          (fromCountry ? flagUrlForCountry(fromCountry, 20) : null);
+        const fromCountryName =
+          req.from?.countryName || req.fromCountryName || fromCountry || null;
+
         // also attach unified field for template use
-        return { ...req, fromAvatarAbsolute };
+        return {
+          ...req,
+          fromAvatarAbsolute,
+          fromFlagUrl,
+          fromCountryName,
+        };
       });
       setRequests(normalized);
     } catch (err) {
@@ -359,6 +390,15 @@ function FriendsPage() {
   const friendsCount = friends.length;
   const incomingCount = requests.length;
 
+  // small inline style for flag images (keeps CSS changes minimal)
+  const flagImgStyle = {
+    width: 20,
+    height: "auto",
+    verticalAlign: "middle",
+    marginRight: 6,
+    borderRadius: 2,
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.headerRow}>
@@ -438,8 +478,18 @@ function FriendsPage() {
                 )}
 
                 <div>
-                  <div className={styles.requestName}>
-                    {req.fromDisplayName || req.fromUsername}
+                  <div
+                    className={styles.requestName}
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    {req.fromFlagUrl ? (
+                      <img
+                        src={req.fromFlagUrl}
+                        alt={req.fromCountryName || req.from?.country || ""}
+                        style={flagImgStyle}
+                      />
+                    ) : null}
+                    <span>{req.fromDisplayName || req.fromUsername}</span>
                   </div>
                   <div className={styles.requestHandle}>
                     @{req.fromUsername}

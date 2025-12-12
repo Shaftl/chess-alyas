@@ -1,4 +1,3 @@
-// frontend/app/players/PlayersPage.jsx
 "use client";
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import axios from "axios";
@@ -35,6 +34,17 @@ function resolveAvatarFrom(candidate) {
   if (!alt) return null;
   if (/^https?:\/\//i.test(alt)) return alt;
   return `${backendOrigin}${alt}`;
+}
+
+function flagUrlForCountry(countryCode, size = 20) {
+  if (!countryCode) return null;
+  try {
+    return `https://flagcdn.com/w${size}/${String(
+      countryCode
+    ).toLowerCase()}.png`;
+  } catch {
+    return null;
+  }
 }
 
 export default function PlayersPage() {
@@ -106,7 +116,14 @@ export default function PlayersPage() {
           avatar && !/^https?:\/\//i.test(avatar)
             ? `${backendOrigin}${avatar}`
             : avatar;
-        setMyProfile({ ...raw, avatarUrlAbsolute });
+
+        // flag enrichment (frontend-only)
+        const flagUrl =
+          raw.flagUrl ||
+          (raw.country ? flagUrlForCountry(raw.country, 40) : null);
+        const countryName = raw.countryName || raw.country || null;
+
+        setMyProfile({ ...raw, avatarUrlAbsolute, flagUrl, countryName });
       } else {
         setMyProfile(null);
       }
@@ -141,7 +158,13 @@ export default function PlayersPage() {
           avatar && !/^https?:\/\//i.test(avatar)
             ? `${backendOrigin}${avatar}`
             : avatar;
-        return { ...p, avatarUrlAbsolute };
+
+        // flag enrichment (frontend-only)
+        const flagUrl =
+          p.flagUrl || (p.country ? flagUrlForCountry(p.country, 20) : null);
+        const countryName = p.countryName || p.country || null;
+
+        return { ...p, avatarUrlAbsolute, flagUrl, countryName };
       });
 
       setPlayers(normalized);
@@ -550,6 +573,15 @@ export default function PlayersPage() {
     return <div className={styles.loading}>Checking session…</div>;
   }
 
+  // small inline style for flag images (keeps CSS changes minimal)
+  const flagImgStyle = {
+    width: 20,
+    height: "auto",
+    verticalAlign: "middle",
+    marginRight: 6,
+    borderRadius: 2,
+  };
+
   return (
     <ProtectedRoute>
       <div className={styles.container}>
@@ -658,8 +690,22 @@ export default function PlayersPage() {
                     ></span>
                     {currentUserEntry.online ? "Online" : "Offline"}
                   </span>
-                  • {currentUserEntry.country || "Unknown country"}•{" "}
-                  {friendsCount} friends
+                  •{" "}
+                  <span
+                    style={{ display: "inline-flex", alignItems: "center" }}
+                  >
+                    {currentUserEntry.flagUrl ? (
+                      <img
+                        src={currentUserEntry.flagUrl}
+                        alt={currentUserEntry.country || "country"}
+                        style={flagImgStyle}
+                      />
+                    ) : null}
+                    {currentUserEntry.countryName ||
+                      currentUserEntry.country ||
+                      "Unknown country"}
+                  </span>
+                  • {friendsCount} friends
                 </div>
               </div>
             </div>
@@ -749,13 +795,20 @@ export default function PlayersPage() {
                   <div className={styles.playerStatus}>
                     <div
                       className={`${styles.onlineStatus} ${
-                        p.online ? styles.online : styles.offline
+                        p?.online ? styles.online : styles.offline
                       }`}
                     >
                       {p.online ? "Online" : "Offline"}
                     </div>
                     <div className={styles.playerCountry}>
-                      {p.country || ""}
+                      {p.flagUrl ? (
+                        <img
+                          src={p.flagUrl}
+                          alt={p.country || ""}
+                          style={flagImgStyle}
+                        />
+                      ) : null}
+                      <span>{p.countryName || p.country || ""}</span>
                     </div>
                   </div>
                 </div>
@@ -860,7 +913,14 @@ export default function PlayersPage() {
                       {p.online ? "Online" : "Offline"}
                     </div>
                     <div className={styles.playerCountry}>
-                      {p.country || ""}
+                      {p.flagUrl ? (
+                        <img
+                          src={p.flagUrl}
+                          alt={p.country || ""}
+                          style={flagImgStyle}
+                        />
+                      ) : null}
+                      <span>{p.countryName || p.country || ""}</span>
                     </div>
                   </div>
                 </div>

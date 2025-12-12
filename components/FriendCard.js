@@ -6,7 +6,7 @@ import styles from "./FriendCard.module.css";
 /**
  * FriendCard
  * Props:
- *  - user: { id, username, displayName, avatarUrl, online, country, cups, lastIp }
+ *  - user: { id, username, displayName, avatarUrl, online, country, cups, lastIp, flagUrl, countryName }
  *  - onChallenge(user)
  *  - onUnfriend(id)
  *  - onView(id)
@@ -60,11 +60,62 @@ function avatarUrlFromUser(user) {
   return null;
 }
 
+function flagUrlForCountryCode(countryCode, size = 20) {
+  if (!countryCode) return null;
+  try {
+    return `https://flagcdn.com/w${size}/${String(
+      countryCode
+    ).toLowerCase()}.png`;
+  } catch {
+    return null;
+  }
+}
+
+function resolveFlagUrl(user) {
+  if (!user) return null;
+  // prefer explicit flagUrl if provided by backend (and normalize relative paths)
+  if (user.flagUrl) {
+    if (/^https?:\/\//i.test(user.flagUrl)) return user.flagUrl;
+    const n = normalizeBackendUrl(user.flagUrl);
+    return n || user.flagUrl;
+  }
+
+  // try fallback from country / countryCode fields
+  const cc = user.country || user.countryCode;
+  if (cc && typeof cc === "string") {
+    return flagUrlForCountryCode(cc, 20);
+  }
+  return null;
+}
+
 export default function FriendCard({ user, onChallenge, onUnfriend, onView }) {
   const avatar = avatarUrlFromUser(user);
   const initial = (user?.displayName || user?.username || "U")
     .charAt(0)
     .toUpperCase();
+
+  const flagUrl = resolveFlagUrl(user);
+  const countryLabel =
+    user?.countryName || user?.country || user?.countryCode || "";
+
+  // inline small styling for the flag so it fits your existing layout without requiring CSS changes
+  const flagStyle = {
+    width: 18,
+    height: "auto",
+    marginLeft: 8,
+    borderRadius: 3,
+    verticalAlign: "middle",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
+    display: "inline-block",
+  };
+
+  // Build status class safely to avoid "undefined" tokens when CSS module keys are missing
+  const statusClassNames = [
+    styles.onlineStatus || "",
+    user?.online ? styles.online || "" : styles.offline || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className={styles.card}>
@@ -83,19 +134,37 @@ export default function FriendCard({ user, onChallenge, onUnfriend, onView }) {
           </div>
           <div className={styles.username}>@{user.username}</div>
           <div className={styles.stats}>
-            Cups: <strong>{user.cups ?? 0}</strong>
+            <div className={styles.statsCups}>
+              <img src="/trophy.png" width={20} alt="cups" />
+              <strong>{user.cups ?? 0}</strong>
+            </div>
+            {/* Replace plain country code with flag image when possible (falls back to text) */}
             {user.country && (
-              <span className={styles.country}>{user.country}</span>
+              <span
+                className={styles.country}
+                aria-label={countryLabel || user.country}
+              >
+                {flagUrl ? (
+                  <img
+                    src={flagUrl}
+                    alt={countryLabel || user.country}
+                    style={flagStyle}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <span style={{ marginLeft: 8 }}>
+                    {String(user.country).toUpperCase()}
+                  </span>
+                )}
+              </span>
             )}
           </div>
         </div>
 
         <div className={styles.status}>
-          <div
-            className={`${styles.onlineStatus} ${
-              user.online ? styles.online : styles.offline
-            }`}
-          >
+          <div className={statusClassNames}>
             {user.online ? "Online" : "Offline"}
           </div>
           {user.lastIp && <div className={styles.ipAddress}>{user.lastIp}</div>}

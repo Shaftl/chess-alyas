@@ -668,11 +668,6 @@
   display: none;
 }
 
-.sidebarRes svg {
-  width: 2.2rem;
-  height: 2.2rem;
-}
-
 @media (max-width: 1200px) {
   .sidebarRes {
     /* display: none; */
@@ -793,6 +788,16 @@
     /* slightly reduced from 640 -> 600 for a modest, professional shrink */
     width: min(260px, 72vh) !important;
     height: min(260px, 72vh) !important;
+
+    margin-top: 3rem;
+  }
+
+  .sidebarRes svg {
+    height: 2rem;
+  }
+
+  .menuIconBtn {
+    left: 0rem;
   }
 }
 
