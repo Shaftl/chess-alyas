@@ -553,7 +553,7 @@ export default function HeaderControls({
             className={`${styles.btn} ${styles["btn-primary"]}`}
             onClick={joinRoom}
           >
-            <svg
+            {/* <svg
               xmlns="http://www.w3.org/2000/svg"
               width="36"
               height="36"
@@ -562,6 +562,8 @@ export default function HeaderControls({
             >
               <path d="M232,216H208V40a16,16,0,0,0-16-16H64A16,16,0,0,0,48,40V216H24a8,8,0,0,0,0,16H232a8,8,0,0,0,0-16Zm-64,0H64V40H168Zm-40-84a12,12,0,1,1,12,12A12,12,0,0,1,128,132Z"></path>
             </svg>
+             */}
+            <img src="/join-room.png" width={30} />
             Join Room
           </button>
 
@@ -569,7 +571,7 @@ export default function HeaderControls({
             className={styles.btn}
             onClick={() => setIsPlayWithFriend((v) => !v)}
           >
-            <svg
+            {/* <svg
               xmlns="http://www.w3.org/2000/svg"
               width="36"
               height="36"
@@ -577,7 +579,8 @@ export default function HeaderControls({
               viewBox="0 0 256 256"
             >
               <path d="M216,32H152a8,8,0,0,0-6.34,3.12l-64,83.21L72,108.69a16,16,0,0,0-22.64,0l-8.69,8.7a16,16,0,0,0,0,22.63l22,22-32,32a16,16,0,0,0,0,22.63l8.69,8.68a16,16,0,0,0,22.62,0l32-32,22,22a16,16,0,0,0,22.64,0l8.69-8.7a16,16,0,0,0,0-22.63l-9.64-9.64,83.21-64A8,8,0,0,0,224,104V40A8,8,0,0,0,216,32Zm-8,68.06-81.74,62.88L115.32,152l50.34-50.34a8,8,0,0,0-11.32-11.31L104,140.68,93.07,129.74,155.94,48H208Z"></path>
-            </svg>
+            </svg> */}
+            <img src="/friend.png" width={30} />
             Play with Friend
           </button>
 
@@ -624,6 +627,7 @@ export default function HeaderControls({
                     }
                   }}
                 >
+                  <img src="/create.webp" width={30} />
                   Create Room
                 </button>
 
@@ -697,7 +701,7 @@ export default function HeaderControls({
           >
             {onlineQueueing ? (
               <>
-                <svg
+                {/* <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="36"
                   height="36"
@@ -705,12 +709,13 @@ export default function HeaderControls({
                   viewBox="0 0 256 256"
                 >
                   <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,130.34a8,8,0,0,1-11.32,11.32L128,139.31l-26.34,26.35a8,8,0,0,1-11.32-11.32L116.69,128,90.34,101.66a8,8,0,0,1,11.32-11.32L128,116.69l26.34-26.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path>
-                </svg>
+                </svg> */}
+                <img src="/cancle.png" width={30} />
                 Cancel Play Random
               </>
             ) : (
               <>
-                <svg
+                {/* <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="36"
                   height="36"
@@ -718,7 +723,8 @@ export default function HeaderControls({
                   viewBox="0 0 256 256"
                 >
                   <path d="M245.11,60.68c-7.65-13.19-27.85-16.16-58.5-8.66A96,96,0,0,0,32.81,140.3C5.09,169,5.49,186,10.9,195.32,16,204.16,26.64,208,40.64,208a124.11,124.11,0,0,0,28.79-4,96,96,0,0,0,153.78-88.25c12.51-13,20.83-25.35,23.66-35.92C248.83,72.51,248.24,66.07,245.11,60.68Zm-13.69,15c-6.11,22.78-48.65,57.31-87.52,79.64-67.81,39-113.62,41.52-119.16,32-1.46-2.51-.65-7.24,2.22-13a80.06,80.06,0,0,1,10.28-15.05,95.53,95.53,0,0,0,6.23,14.18,4,4,0,0,0,4,2.12,122.14,122.14,0,0,0,16.95-3.32c21.23-5.55,46.63-16.48,71.52-30.78s47-30.66,62.45-46.15A122.74,122.74,0,0,0,209.7,82.45a4,4,0,0,0,.17-4.52,96.26,96.26,0,0,0-9.1-12.46c14.21-2.35,27.37-2.17,30.5,3.24C232.19,70.28,232.24,72.63,231.42,75.69Z"></path>
-                </svg>
+                </svg> */}
+                <img src="/rondom.webp" width={30} />
                 Play with Random
               </>
             )}
@@ -751,7 +757,7 @@ export default function HeaderControls({
             >
               {botCreating ? (
                 <>
-                  <svg
+                  {/* <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="32"
                     height="32"
@@ -759,12 +765,13 @@ export default function HeaderControls({
                     viewBox="0 0 256 256"
                   >
                     <path d="M211.18,196.56,139.57,128l71.61-68.56a1.59,1.59,0,0,1,.13-.13A16,16,0,0,0,200,32H56A16,16,0,0,0,44.69,59.31a1.59,1.59,0,0,1,.13.13L116.43,128,44.82,196.56a1.59,1.59,0,0,1-.13.13A16,16,0,0,0,56,224H200a16,16,0,0,0,11.32-27.31A1.59,1.59,0,0,1,211.18,196.56ZM56,48h0v0ZM158.21,168H97.79L128,139.08ZM200,48l-72,68.92L56,48Z"></path>
-                  </svg>
+                  </svg> */}
+                  <img src="/bot-creating.png" width={30} />
                   Creating...
                 </>
               ) : (
                 <>
-                  <svg
+                  {/* <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="32"
                     height="32"
@@ -772,7 +779,8 @@ export default function HeaderControls({
                     viewBox="0 0 256 256"
                   >
                     <path d="M200,48H136V16a8,8,0,0,0-16,0V48H56A32,32,0,0,0,24,80V192a32,32,0,0,0,32,32H200a32,32,0,0,0,32-32V80A32,32,0,0,0,200,48ZM172,96a12,12,0,1,1-12,12A12,12,0,0,1,172,96ZM96,184H80a16,16,0,0,1,0-32H96ZM84,120a12,12,0,1,1,12-12A12,12,0,0,1,84,120Zm60,64H112V152h32Zm32,0H160V152h16a16,16,0,0,1,0,32Z"></path>
-                  </svg>
+                  </svg> */}
+                  <img src="/bot.png" width={30} />
                   Play with Bot
                 </>
               )}

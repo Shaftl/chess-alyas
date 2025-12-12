@@ -135,7 +135,7 @@ export default function AccountDropdown() {
             <img src={avatar} alt="avatar" className={styles.avatarImg} />
           ) : (
             <img
-              src="https://ik.imagekit.io/ehggwul6k/User-Circle-Single--Streamline-Flex%20(1).png?updatedAt=1762626281362"
+              src="https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif"
               alt="avatar"
               className={styles.avatarImg}
             />
@@ -152,7 +152,7 @@ export default function AccountDropdown() {
                   <img src={avatar} alt="avatar" className={styles.avatarImg} />
                 ) : (
                   <img
-                    src="https://ik.imagekit.io/ehggwul6k/User-Circle-Single--Streamline-Flex%20(1).png?updatedAt=1762626281362"
+                    src="https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif"
                     alt="avatar"
                     className={styles.avatarImg}
                   />
@@ -170,13 +170,31 @@ export default function AccountDropdown() {
 
           <button
             onClick={() => go("/profile")}
-            className={styles.profileButton}
+            className={`${styles.profileButton} flexWG`}
             role="menuitem"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="#000000"
+              viewBox="0 0 256 256"
+            >
+              <path d="M230.93,220a8,8,0,0,1-6.93,4H32a8,8,0,0,1-6.92-12c15.23-26.33,38.7-45.21,66.09-54.16a72,72,0,1,1,73.66,0c27.39,8.95,50.86,27.83,66.09,54.16A8,8,0,0,1,230.93,220Z"></path>
+            </svg>
             Profile
           </button>
 
-          <BackgroundUploader className={styles.profileButton}>
+          <BackgroundUploader className={`${styles.profileButton} flexWG`}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="#000000"
+              viewBox="0 0 256 256"
+            >
+              <path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM156,88a12,12,0,1,1-12,12A12,12,0,0,1,156,88Zm60,112H40V160.69l46.34-46.35a8,8,0,0,1,11.32,0h0L165,181.66a8,8,0,0,0,11.32-11.32l-17.66-17.65L173,138.34a8,8,0,0,1,11.31,0L216,170.07V200Z"></path>
+            </svg>
             Change Background
           </BackgroundUploader>
 
@@ -185,9 +203,18 @@ export default function AccountDropdown() {
           <button
             onClick={handleLogout}
             disabled={busy}
-            className={styles.signOutButton}
+            className={`${styles.signOutButton} flexWG`}
             role="menuitem"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="#000000"
+              viewBox="0 0 256 256"
+            >
+              <path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40A8,8,0,0,0,176,88v32H112a8,8,0,0,0,0,16h64v32a8,8,0,0,0,13.66,5.66l40-40A8,8,0,0,0,229.66,122.34Z"></path>
+            </svg>
             {busy ? "Signing out..." : "Sign out"}
           </button>
         </div>

@@ -649,26 +649,32 @@ export default function PlayersPage() {
                     }}
                   />
                 ) : (
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: "50%",
-                      background: "#eee",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {(
-                      currentUserEntry.displayName ||
-                      currentUserEntry.username ||
-                      "U"
-                    )
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
+                  // <div
+                  //   style={{
+                  //     width: 56,
+                  //     height: 56,
+                  //     borderRadius: "50%",
+                  //     background: "#eee",
+                  //     display: "flex",
+                  //     alignItems: "center",
+                  //     justifyContent: "center",
+                  //     fontWeight: 600,
+                  //   }}
+                  // >
+                  //   {(
+                  //     currentUserEntry.displayName ||
+                  //     currentUserEntry.username ||
+                  //     "U"
+                  //   )
+                  //     .charAt(0)
+                  //     .toUpperCase()}
+                  // </div>
+
+                  <img
+                    src="https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif"
+                    alt="avatar"
+                    className={styles.avatarImgU}
+                  />
                 )}
               </div>
 
@@ -756,22 +762,28 @@ export default function PlayersPage() {
                           }}
                         />
                       ) : (
-                        <div
-                          style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: "50%",
-                            background: "#eee",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {(p.displayName || p.username || "U")
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
+                        // <div
+                        //   style={{
+                        //     width: 44,
+                        //     height: 44,
+                        //     borderRadius: "50%",
+                        //     background: "#eee",
+                        //     display: "flex",
+                        //     alignItems: "center",
+                        //     justifyContent: "center",
+                        //     fontWeight: 600,
+                        //   }}
+                        // >
+                        //   {(p.displayName || p.username || "U")
+                        //     .charAt(0)
+                        //     .toUpperCase()}
+                        // </div>
+
+                        <img
+                          src="https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif"
+                          alt="avatar"
+                          className={styles.avatarImgUF}
+                        />
                       )}
                     </div>
 
@@ -878,22 +890,28 @@ export default function PlayersPage() {
                           }}
                         />
                       ) : (
-                        <div
-                          style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: "50%",
-                            background: "#eee",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {(p.displayName || p.username || "U")
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
+                        // <div
+                        //   style={{
+                        //     width: 44,
+                        //     height: 44,
+                        //     borderRadius: "50%",
+                        //     background: "#eee",
+                        //     display: "flex",
+                        //     alignItems: "center",
+                        //     justifyContent: "center",
+                        //     fontWeight: 600,
+                        //   }}
+                        // >
+                        //   {(p.displayName || p.username || "U")
+                        //     .charAt(0)
+                        //     .toUpperCase()}
+                        // </div>
+
+                        <img
+                          src="https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif"
+                          alt="avatar"
+                          className={styles.avatarImgUF}
+                        />
                       )}
                     </div>
 

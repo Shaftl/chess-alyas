@@ -124,7 +124,12 @@ export default function FriendCard({ user, onChallenge, onUnfriend, onView }) {
           {avatar ? (
             <img src={avatar} alt="avatar" className={styles.avatarImage} />
           ) : (
-            <div className={styles.avatarInitial}>{initial}</div>
+            // <div className={styles.avatarInitial}>{initial}</div>
+            <img
+              src="https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif"
+              alt="avatar"
+              className={styles.avatarImg}
+            />
           )}
         </div>
 

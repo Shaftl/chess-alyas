@@ -101,6 +101,17 @@
   font-weight: 300;
 }
 
+.profileButton svg {
+  width: 2rem;
+  height: 2rem;
+  fill: #fff;
+}
+.signOutButton svg {
+  width: 2rem;
+  height: 2rem;
+  fill: #ff5d5d;
+}
+
 .profileButton:focus,
 .signOutButton:focus {
   background-color: #00000011;
@@ -113,7 +124,7 @@
 
 /* sign out styling and disabled state */
 .signOutButton {
-  color: rgb(255, 93, 93);
+  color: #ff5d5d;
 }
 
 .signOutButton:disabled {

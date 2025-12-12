@@ -749,3 +749,18 @@
     font-size: 1.3rem;
   }
 }
+
+.avatarImgU {
+  width: 5.6rem;
+  height: 5.6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.avatarImgUF {
+  width: 4.4rem;
+  height: 4.4rem;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}

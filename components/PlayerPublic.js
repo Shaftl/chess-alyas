@@ -490,11 +490,16 @@ export default function PlayerPublic({ id }) {
                     className={styles.avatarImage}
                   />
                 ) : (
-                  <div className={styles.avatarFallback}>
-                    {(profile.displayName || profile.username || "U")
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
+                  // <div className={styles.avatarFallback}>
+                  //   {(profile.displayName || profile.username || "U")
+                  //     .charAt(0)
+                  //     .toUpperCase()}
+                  // </div>
+                  <img
+                    src="https://ik.imagekit.io/ehggwul6k/Chess-app-avaters/1765541858886_user-blue-gradient_78370-4692_O6GdbvkG1.avif"
+                    alt="avatar"
+                    className={styles.avatarImg}
+                  />
                 )}
               </div>
             </div>
