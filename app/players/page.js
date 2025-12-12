@@ -600,6 +600,7 @@ export default function PlayersPage() {
               onClick={() => fetchPlayers(searchQuery)}
               disabled={loading}
               className={styles.btn}
+              style={{ display: "none" }}
             >
               Search
             </button>
