@@ -4,7 +4,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.56);
+  background: rgba(2, 6, 23, 0.434);
   z-index: 1200;
   display: flex;
   align-items: center;
@@ -19,19 +19,40 @@
   border-radius: 16px;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.08) 0%,
+    rgba(0, 0, 0, 0.329) 0%,
     rgba(255, 255, 255, 0.02) 100%
   );
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  min-height: 140px;
+  max-height: 46rem;
   backdrop-filter: blur(20px);
   transition: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  width: min(92%, 560px);
+  width: 30rem;
   box-shadow: 0 18px 50px rgba(2, 6, 23, 0.18);
+}
+
+.btnClose {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background-color: transparent;
+}
+
+.btnClose svg {
+  width: 3rem;
+  height: 3rem;
+  fill: #fff;
 }
 
 .card::before {
@@ -56,8 +77,8 @@
 }
 
 .badge {
-  width: 56px;
-  height: 56px;
+  width: 6rem;
+  height: 6rem;
   border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(
@@ -91,7 +112,7 @@
   min-width: 0;
 }
 .title {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.9) 100%);
@@ -100,7 +121,7 @@
   background-clip: text;
 }
 .subtitle {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.2;
   white-space: nowrap;
@@ -164,8 +185,8 @@
 .actions {
   display: flex;
   gap: 8px;
-  justify-content: center;
-  margin-top: 10px;
+  justify-content: space-between;
+  margin-top: 1.4rem;
   flex-wrap: wrap;
 }
 
@@ -177,9 +198,9 @@
   );
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: white;
-  padding: 0.8rem 1.4rem;
+  padding: 1rem 1.8rem;
   border-radius: 10px;
-  font-size: 1rem;
+  font-size: 1.3rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
@@ -202,6 +223,10 @@
   background: linear-gradient(135deg, #0b4cae 0%, #1e40af 100%);
   border-color: rgba(59, 130, 246, 0.4);
   color: white;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  color: #fff !important;
 }
 
 .btnSecondary {

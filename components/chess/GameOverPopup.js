@@ -1,207 +1,255 @@
-// "use client";
+"use client";
 
-// import React, { useEffect, useState } from "react";
-// import styles from "./GameOverPopup.module.css";
+import React, { useEffect, useState, useRef } from "react";
+import styles from "./GameOverPopup.module.css";
 
-// /**
-//  * GameOverPopup
-//  */
-// export default function GameOverPopup({
-//   visible = false,
-//   reason = "",
-//   message = "",
-//   playerIsWinner = false,
-//   winnerName = null,
-//   loserName = null,
-//   winner = null,
-//   loser = null,
-//   showAsSpectator = false,
-//   onRematch = null,
-//   onNewGame = null,
-//   onClose = null,
-// }) {
-//   const [internalShow, setInternalShow] = useState(!!visible);
+/**
+ * GameOverPopup (confetti: more realistic)
+ *
+ * - Still: shows only for players (spectators => null)
+ * - Adds a full-screen canvas used by canvas-confetti for better visuals
+ * - Fires multiple gentle rain waves for a realistic look (no fireworks)
+ */
+export default function GameOverPopup({
+  visible = false,
+  reason = "",
+  message = "",
+  playerIsWinner = false,
+  winnerName = null,
+  loserName = null,
+  winner = null,
+  loser = null,
+  showAsSpectator = false,
+  onRematch = null,
+  onNewGame = null,
+  onClose = null,
+}) {
+  // If user is a spectator — do not show anything at all.
+  if (showAsSpectator) return null;
 
-//   useEffect(() => {
-//     if (visible) setInternalShow(true);
-//   }, [visible]);
+  const [internalShow, setInternalShow] = useState(!!visible);
+  const canvasRef = useRef(null);
 
-//   function getCupsInfo(p) {
-//     if (!p) return null;
-//     const current = p.cups ?? p.rating ?? p.elo ?? null;
-//     const delta =
-//       p.cupsDelta ??
-//       p.cupsChange ??
-//       p.deltaCups ??
-//       (p.delta && p.delta.cups) ??
-//       p.ratingDelta ??
-//       p.delta;
-//     if (typeof current !== "number" && typeof delta !== "number") return null;
-//     if (typeof delta === "number") {
-//       const sign = delta >= 0 ? `+${delta}` : `${delta}`;
-//       const val = typeof current === "number" ? String(current) : null;
-//       if (val) return `${val} (${sign})`;
-//       return `${sign}`;
-//     }
-//     if (typeof current === "number") return String(current);
-//     return null;
-//   }
+  useEffect(() => {
+    setInternalShow(!!visible);
+  }, [visible]);
 
-//   useEffect(() => {
-//     let fired = false;
-//     async function maybeConfetti() {
-//       if (!internalShow || fired || !playerIsWinner) return;
-//       fired = true;
-//       try {
-//         const confettiModule = await import("canvas-confetti");
-//         const confetti = confettiModule.default || confettiModule;
-//         confetti({ particleCount: 60, spread: 90, origin: { y: 0.2 } });
-//         setTimeout(
-//           () =>
-//             confetti({ particleCount: 30, spread: 120, origin: { y: 0.2 } }),
-//           220
-//         );
-//       } catch (e) {}
-//     }
-//     maybeConfetti();
-//   }, [internalShow, playerIsWinner]);
+  // realistic confetti routine (gentle rain, no fireworks)
+  useEffect(() => {
+    let fired = false;
+    let cancelled = false;
 
-//   if (!visible && !internalShow) return null;
+    function sleep(ms) {
+      return new Promise((res) => setTimeout(res, ms));
+    }
 
-//   // prefer real username/displayName; if raw is single-letter color, ignore it
-//   function deriveDisplayName(rawName, obj) {
-//     if (obj && (obj.displayName || obj.username))
-//       return obj.displayName || obj.username;
-//     if (!rawName) return null;
-//     if (typeof rawName === "string" && /^[wbWB]$/.test(rawName.trim())) {
-//       return null; // treat color as "no name"
-//     }
-//     return rawName;
-//   }
+    async function fireRealisticConfetti() {
+      if (!internalShow || fired || !playerIsWinner) return;
+      fired = true;
 
-//   const displayWinnerName = deriveDisplayName(winnerName, winner);
-//   const displayLoserName = deriveDisplayName(loserName, loser);
+      try {
+        const confettiModule = await import("canvas-confetti");
+        const confetti = confettiModule.default || confettiModule;
 
-//   const headline = playerIsWinner
-//     ? "You won!"
-//     : showAsSpectator
-//     ? `${displayWinnerName || "Winner"} won`
-//     : displayWinnerName
-//     ? "You lost"
-//     : "Game finished";
+        // create a confetti instance that draws to our canvas (resize enabled)
+        const myConfetti = confetti.create(canvasRef.current, {
+          resize: true,
+          useWorker: true,
+        });
 
-//   const subtitleSpectator = showAsSpectator
-//     ? `${displayWinnerName || "Winner"} — ${displayLoserName || "Loser"}`
-//     : message ||
-//       reason ||
-//       (playerIsWinner ? "Good game — congrats!" : "Good game");
+        const colors = [
+          "#FFD700", // gold
+          "#FF5E3A", // orange
+          "#8EFFC1", // mint
+          "#5AD0FF", // sky
+          "#C27BFF", // purple
+          "#FFFFFF", // white sparkle
+        ];
 
-//   const winnerCups = getCupsInfo(winner);
-//   const loserCups = getCupsInfo(loser);
+        // Gentle rain: a few soft waves emitted from random x origins across the top.
+        const waves = 3 + Math.floor(Math.random() * 2); // 3 or 4 waves
+        for (let w = 0; w < waves && !cancelled; w++) {
+          const originX = 0.12 + Math.random() * 0.76; // 0.12..0.88
+          myConfetti({
+            particleCount: 28 + Math.round(Math.random() * 20), // 28..48
+            angle: 90, // straight down
+            spread: 50 + Math.round(Math.random() * 60), // 50..110
+            startVelocity: 10 + Math.round(Math.random() * 18), // low-ish
+            ticks: 350 + Math.round(Math.random() * 120),
+            gravity: 0.28 + Math.random() * 0.32, // soft fall
+            scalar: 0.6 + Math.random() * 0.8,
+            drift: (Math.random() - 0.5) * 0.25,
+            colors,
+            shapes: ["square", "circle"],
+            origin: { x: originX, y: 0 },
+          });
 
-//   function handleBackdropClick() {
-//     setInternalShow(false);
-//     if (typeof onClose === "function") onClose();
-//   }
-//   function stopProp(e) {
-//     e.stopPropagation();
-//   }
+          // short randomized pause between waves for organic feel
+          // keeps the rain continuous but not mechanical
+          await sleep(140 + Math.round(Math.random() * 140));
+        }
 
-//   return (
-//     <div
-//       className={styles.backdrop}
-//       role="dialog"
-//       aria-modal="true"
-//       onClick={handleBackdropClick}
-//     >
-//       <div className={styles.card} onClick={stopProp}>
-//         <div className={styles.header}>
-//           <div
-//             className={`${styles.badge} ${
-//               playerIsWinner ? styles.badgeWinner : ""
-//             }`}
-//             aria-hidden
-//           >
-//             {playerIsWinner ? "🎉" : "♟️"}
-//           </div>
+        // Light finishing drizzle (smaller particles)
+        for (let j = 0; j < 2 && !cancelled; j++) {
+          myConfetti({
+            particleCount: 12 + Math.round(Math.random() * 10),
+            angle: 90,
+            spread: 80 + Math.round(Math.random() * 40),
+            startVelocity: 8 + Math.round(Math.random() * 12),
+            ticks: 300 + Math.round(Math.random() * 100),
+            gravity: 0.24 + Math.random() * 0.3,
+            scalar: 0.45 + Math.random() * 0.6,
+            drift: (Math.random() - 0.5) * 0.18,
+            colors,
+            shapes: ["circle"],
+            origin: { x: 0.3 + Math.random() * 0.4, y: 0 },
+          });
+          await sleep(160 + Math.round(Math.random() * 100));
+        }
+      } catch (e) {
+        // visual-only; ignore failures
+      }
+    }
 
-//           <div className={styles.titleWrap}>
-//             <div className={styles.title}>{headline}</div>
-//             <div className={styles.subtitle}>
-//               {showAsSpectator ? subtitleSpectator : subtitleSpectator}
-//             </div>
-//           </div>
-//         </div>
+    fireRealisticConfetti();
 
-//         {/* ALWAYS show labels for clarity; show real names only if available */}
-//         <div className={styles.namesRow}>
-//           <div className={styles.playerCard}>
-//             <div className={styles.playerLabel}>Winner</div>
-//             {displayWinnerName ? (
-//               <div className={styles.playerName}>{displayWinnerName}</div>
-//             ) : null}
-//             {winnerCups ? (
-//               <div className={`${styles.cups} ${styles.cupsWinner}`}>
-//                 cups: {winnerCups}
-//               </div>
-//             ) : null}
-//           </div>
+    return () => {
+      cancelled = true;
+    };
+  }, [internalShow, playerIsWinner]);
 
-//           <div className={styles.playerCard}>
-//             <div className={styles.playerLabel}>Loser</div>
-//             {displayLoserName ? (
-//               <div className={styles.playerName}>{displayLoserName}</div>
-//             ) : null}
-//             {loserCups ? (
-//               <div className={`${styles.cups} ${styles.cupsLoser}`}>
-//                 cups: {loserCups}
-//               </div>
-//             ) : null}
-//           </div>
-//         </div>
+  // prefer real username/displayName; if raw is single-letter color, ignore it
+  function deriveDisplayName(rawName, obj) {
+    if (obj && (obj.displayName || obj.username))
+      return obj.displayName || obj.username;
+    if (!rawName) return null;
+    if (typeof rawName === "string" && /^[wbWB]$/.test(rawName.trim())) {
+      return null; // treat color as "no name"
+    }
+    return rawName;
+  }
 
-//         {reason && (
-//           <div className={styles.reason}>Reason: {String(reason)}</div>
-//         )}
+  const displayWinnerName = deriveDisplayName(winnerName, winner);
 
-//         <div className={styles.actions}>
-//           {typeof onRematch === "function" && (
-//             <button
-//               onClick={() => {
-//                 try {
-//                   onRematch();
-//                 } catch (e) {}
-//               }}
-//               className={`${styles.btn} ${styles.btnPrimary}`}
-//             >
-//               Play again
-//             </button>
-//           )}
+  const headline = playerIsWinner ? "You won!" : "You lost";
 
-//           {typeof onNewGame === "function" && (
-//             <button
-//               onClick={() => {
-//                 try {
-//                   onNewGame();
-//                 } catch (e) {}
-//               }}
-//               className={`${styles.btn} ${styles.btnSecondary}`}
-//             >
-//               New game
-//             </button>
-//           )}
+  const shortReason = reason || message || "";
+  const subtitle = playerIsWinner
+    ? shortReason
+      ? `Won by ${shortReason}`
+      : "Good game — congrats!"
+    : displayWinnerName
+    ? shortReason
+      ? `${displayWinnerName} won by ${shortReason}`
+      : `${displayWinnerName} won`
+    : shortReason
+    ? `Opponent won by ${shortReason}`
+    : "Game finished";
 
-//           <button
-//             onClick={() => {
-//               setInternalShow(false);
-//               if (typeof onClose === "function") onClose();
-//             }}
-//             className={`${styles.btn} ${styles.btnSecondary}`}
-//           >
-//             Close
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
+  function handleBackdropClick() {
+    setInternalShow(false);
+    if (typeof onClose === "function") onClose();
+  }
+  function stopProp(e) {
+    e.stopPropagation();
+  }
+
+  if (!internalShow) return null;
+
+  return (
+    <div
+      className={styles.backdrop}
+      role="dialog"
+      aria-modal="true"
+      onClick={handleBackdropClick}
+      style={{ position: "fixed", inset: 0 }}
+    >
+      {/* confetti canvas (pointer-events none so clicks pass through to backdrop) */}
+      <canvas
+        ref={canvasRef}
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          zIndex: 9998,
+        }}
+      />
+
+      <div
+        className={styles.card}
+        onClick={stopProp}
+        // ensure modal card sits above confetti canvas
+        style={{ zIndex: 9999 }}
+      >
+        <div className={styles.header}>
+          <div
+            className={`${styles.badge} ${
+              playerIsWinner ? styles.badgeWinner : ""
+            }`}
+            aria-hidden
+          >
+            {playerIsWinner ? (
+              <img src="/winner.png" width={50} />
+            ) : (
+              <img src="/loser.png" width={40} />
+            )}
+          </div>
+
+          <div className={styles.titleWrap}>
+            <div className={styles.title}>{headline}</div>
+            <div className={styles.subtitle}>{subtitle}</div>
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          {typeof onRematch === "function" && (
+            <button
+              onClick={() => {
+                try {
+                  onRematch();
+                } catch (e) {}
+              }}
+              className={`${styles.btn} ${styles.btnPrimary}`}
+            >
+              Play again
+            </button>
+          )}
+
+          {typeof onNewGame === "function" && (
+            <button
+              onClick={() => {
+                try {
+                  onNewGame();
+                } catch (e) {}
+              }}
+              className={`${styles.btn} ${styles.btnSecondary}`}
+            >
+              New game
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setInternalShow(false);
+              if (typeof onClose === "function") onClose();
+            }}
+            className={` ${styles.btnClose}`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="#000000"
+              viewBox="0 0 256 256"
+            >
+              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm37.66,130.34a8,8,0,0,1-11.32,11.32L128,139.31l-26.34,26.35a8,8,0,0,1-11.32-11.32L116.69,128,90.34,101.66a8,8,0,0,1,11.32-11.32L128,116.69l26.34-26.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
